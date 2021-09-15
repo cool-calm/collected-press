@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "name": "collected-press",
+  "version": "1.0.0",
+  "description": "A template for kick starting a Cloudflare Workers project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write '**/*.{js,css,json,md}'"
+  },
+  "author": "Patrick Smith <pgwsmith@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^1.18.2"
+  },
+  "dependencies": {
+    "markdown-it": "^12.2.0",
+    "markdown-it-highlightjs": "^3.5.0"
+  }
+}
