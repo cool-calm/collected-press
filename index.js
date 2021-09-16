@@ -81,6 +81,10 @@ function renderMarkdown(markdown, options) {
 
   if (options && options.has('theme')) {
     html = [
+      `<!doctype html>`,
+      `<html lang=en>`,
+      `<meta charset=utf-8>`,
+      `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
       // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
       '<link href="https://unpkg.com/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
       '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
