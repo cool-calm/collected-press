@@ -93,6 +93,7 @@ function renderMarkdown(markdown, options) {
       h4 { font-size: 1em; font-weight: 600; }
       h5 { font-size: .875em; font-weight: 600; }
       h6 { font-size: .85em; font-weight: 600; }
+      img { display: inline-block; }
       </style>`,
       html,
     ].join('\n')
