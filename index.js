@@ -93,6 +93,8 @@ function renderMarkdown(markdown, options) {
       h4 { font-size: 1em; font-weight: 600; }
       h5 { font-size: .875em; font-weight: 600; }
       h6 { font-size: .85em; font-weight: 600; }
+      a { color: #29f; }
+      a:hover { text-decoration: underline; }
       img { display: inline-block; }
       </style>`,
       html,
@@ -120,9 +122,9 @@ function* GetHealth() {
 
 function* GetGitHubFile() {
   yield '/1/github/'
-  const [ownerName] = yield /^[-a-z\d]+/i
+  const [ownerName] = yield /^[-_a-z\d]+/i
   yield '/'
-  const [repoName] = yield /^[-a-z\d]+/i
+  const [repoName] = yield /^[-_a-z\d]+/i
   yield '@'
   const [sha] = yield /^[a-z\d]{40}/i
   yield '/'
@@ -137,7 +139,7 @@ function* GetGitHubFile() {
 
 function* GetGitHubGistFile() {
   yield '/1/github/gist/'
-  const [ownerName] = yield /^[-a-z\d]+/i
+  const [ownerName] = yield /^[-_a-z\d]+/i
   yield '/'
   const [gistID] = yield /^[a-z\d]+/i
   yield mustEnd
