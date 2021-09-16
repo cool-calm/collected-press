@@ -1,15 +1,10 @@
-# 👷 `worker-template` Hello World
+# Collected Press
 
-A template for kick starting a Cloudflare worker project.
+Render Markdown files from GitHub repos and gists.
 
-[`index.js`](https://github.com/cloudflare/worker-template/blob/master/index.js) is the content of the Workers script.
+## Examples
 
-#### Wrangler
-
-To generate using [wrangler](https://github.com/cloudflare/wrangler)
-
-```
-wrangler generate projectname https://github.com/cloudflare/worker-template
-```
-
-Further documentation for Wrangler can be found [here](https://developers.cloudflare.com/workers/tooling/wrangler).
+- Gist: https://press.collected.workers.dev/1/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85
+- Gist with theme: https://press.collected.workers.dev/1/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85?theme
+- Repo Readme: https://press.collected.workers.dev/1/github/RoyalIcing/yieldmachine@4478530fc40c3bf1208f8ea477f455ad34da308d/readme.md
+- Repo Readme with theme: https://press.collected.workers.dev/1/github/RoyalIcing/yieldmachine@4478530fc40c3bf1208f8ea477f455ad34da308d/readme.md?theme

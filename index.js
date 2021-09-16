@@ -105,14 +105,14 @@ function* GetHealth() {
   yield '/health'
   yield mustEnd
 
-  return async () => {
+  return async ({ searchParams }) => {
     const sourceText = await fetchGitHubRepoFile(
       'RoyalIcing',
       'yieldmachine',
       '4478530fc40c3bf1208f8ea477f455ad34da308d',
       'readme.md',
     )
-    const html = renderMarkdown(sourceText)
+    const html = renderMarkdown(sourceText, searchParams)
     return resHTML(html)
   }
 }
@@ -127,9 +127,9 @@ function* GetGitHubFile() {
   yield '/'
   const [path] = yield /^.+$/
 
-  return async () => {
+  return async ({ searchParams }) => {
     const sourceText = await fetchGitHubRepoFile(ownerName, repoName, sha, path)
-    const html = renderMarkdown(sourceText)
+    const html = renderMarkdown(sourceText, searchParams)
     return resHTML(html)
   }
 }
