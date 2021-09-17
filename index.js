@@ -1,7 +1,7 @@
 import markdownIt from 'markdown-it'
 import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
-import { parse, mustEnd, optional } from 'yieldparser'
+import { parse, mustEnd } from 'yieldparser'
 
 const Status = {
   success: 200,
