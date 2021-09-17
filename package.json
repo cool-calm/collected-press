@@ -14,6 +14,7 @@
     "prettier": "^1.18.2"
   },
   "dependencies": {
+    "itsybitsy": "^0.1.0",
     "markdown-it": "^12.2.0",
     "markdown-it-highlightjs": "^3.5.0",
     "markdown-it-task-lists": "^2.1.1",

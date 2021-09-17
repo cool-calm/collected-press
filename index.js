@@ -2,6 +2,7 @@ import markdownIt from 'markdown-it'
 import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd } from 'yieldparser'
+import { bitsy } from 'itsybitsy'
 
 const Status = {
   success: 200,
@@ -264,6 +265,7 @@ function* GetGitHubRepoFile() {
 
 function* GetGitHubRepoRefs() {
   const { fetchJSONIterable } = yield RawGitHubRepoRefs
+  yield mustEnd
 
   return async ({ searchParams }) => {
     const jsonGenerator = await fetchJSONIterable()
@@ -276,6 +278,7 @@ function* GetGitHubRepoHeadRef() {
   const { fetchJSONIterable } = yield RawGitHubRepoRefs
   yield '/heads/'
   const branch = yield ['master', 'main']
+  yield mustEnd
 
   return async ({ searchParams }) => {
     const jsonGenerator = await fetchJSONIterable()
@@ -286,6 +289,23 @@ function* GetGitHubRepoHeadRef() {
     }
 
     return resJSON({ error: true }, Status.notFound)
+  }
+}
+
+function* GetGitHubRepoTagRefs() {
+  const { fetchJSONIterable } = yield RawGitHubRepoRefs
+  yield '/tags'
+  yield mustEnd
+
+  return async ({ searchParams }) => {
+    const jsonGenerator = await fetchJSONIterable()
+    const json = Array.from(bitsy(function*(line) {
+      if (line.ref.startsWith(`refs/tags/`)) {
+        yield line
+      }
+    }).iterate(jsonGenerator()))
+    
+    return resJSON(json)
   }
 }
 
@@ -326,6 +346,7 @@ const routes = [
   GetViewFile,
   GetGitHubRepoRefs,
   GetGitHubRepoHeadRef,
+  GetGitHubRepoTagRefs,
 ]
 
 function* Router() {
