@@ -1,5 +1,6 @@
 import markdownIt from 'markdown-it'
 import highlightjsPlugin from 'markdown-it-highlightjs'
+import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd, optional } from 'yieldparser'
 
 const Status = {
@@ -17,18 +18,28 @@ const Status = {
   tooManyRequests: 429,
 }
 
-const md = markdownIt({ html: true, linkify: true }).use(highlightjsPlugin)
+const HeaderPresets = {
+  ContentSecurityPolicy: {
+    ExternalImagesAndMedia: [
+      'Content-Security-Policy',
+      "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self'",
+    ],
+  },
+}
+
+const md = markdownIt({ html: true, linkify: true }).use(highlightjsPlugin).use(taskListsPlugin)
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request, event))
 })
 
 function resJSON(json, status = Status.success, headers = new Headers()) {
-  headers.set('content-type', 'application/json')
+  headers.headers.set('content-type', 'application/json')
   return new Response(JSON.stringify(json), { status, headers })
 }
 function resHTML(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/html;charset=utf-8')
+  headers.set(...HeaderPresets.ContentSecurityPolicy.ExternalImagesAndMedia);
   return new Response(html, { status, headers })
 }
 function resPlainText(html, status = Status.success, headers = new Headers()) {
@@ -97,7 +108,7 @@ function renderMarkdown(markdown, options) {
       h4 { font-size: 1em; font-weight: 600; }
       h5 { font-size: .875em; font-weight: 600; }
       h6 { font-size: .85em; font-weight: 600; }
-      a { color: #29f; }
+      a { color: #0060F2; }
       a:hover { text-decoration: underline; }
       img { display: inline-block; }
       </style>`,

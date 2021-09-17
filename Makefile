@@ -9,6 +9,7 @@ preview:
 
 GET_health:
 	@curl -w $(CURL_TRAIL) $(PRODUCTION_URL)/health
+	httpstat $(PRODUCTION_URL)/health
 
 GET_yieldmachine_readme:
 	@curl -w $(CURL_TRAIL) $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine@4478530fc40c3bf1208f8ea477f455ad34da308d/readme.md
