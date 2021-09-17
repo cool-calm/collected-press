@@ -4,6 +4,11 @@ Render Markdown from any GitHub repo or gist.
 
 ## Examples
 
+### Rendered
+
+- React’s Changelog: https://press.collected.workers.dev/view/1/github/facebook/react@a8cabb5648a14ef55cb96d679a526e3f731e9611/CHANGELOG.md
+- Night Owl CSS: https://press.collected.workers.dev/view/1/github/highlightjs/highlight.js@e076acce3af97f2f7d89651a2661340df8fabc50/src/styles/night-owl.css
+
 ### Raw HTML
 
 - Gist: https://press.collected.workers.dev/1/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85

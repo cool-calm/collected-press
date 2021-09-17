@@ -27,7 +27,9 @@ const HeaderPresets = {
   },
 }
 
-const md = markdownIt({ html: true, linkify: true }).use(highlightjsPlugin).use(taskListsPlugin)
+const md = markdownIt({ html: true, linkify: true })
+  .use(highlightjsPlugin)
+  .use(taskListsPlugin)
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request, event))
@@ -39,7 +41,7 @@ function resJSON(json, status = Status.success, headers = new Headers()) {
 }
 function resHTML(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/html;charset=utf-8')
-  headers.set(...HeaderPresets.ContentSecurityPolicy.ExternalImagesAndMedia);
+  headers.set(...HeaderPresets.ContentSecurityPolicy.ExternalImagesAndMedia)
   return new Response(html, { status, headers })
 }
 function resPlainText(html, status = Status.success, headers = new Headers()) {
@@ -68,6 +70,47 @@ async function fetchGitHubRepoFile(ownerName, repoName, tag, path) {
 /**
  *
  * @param {string} ownerName
+ * @param {string} repoName
+ * @returns {Promise<Array<string>>}
+ */
+async function fetchGitHubRepoRefs(ownerName, repoName) {
+  const url = `https://github.com/${ownerName}/${repoName}.git/info/refs?service=git-upload-pack`
+  const res = await fetch(url)
+  const arrayBuffer = await res.arrayBuffer()
+  return function* decodePktLine() {
+    let current = 0
+    while (true) {
+      const utf8Decoder = new TextDecoder('utf-8')
+      const lengthHex = utf8Decoder.decode(
+        arrayBuffer.slice(current, current + 4),
+      )
+      current += 4
+      const length = parseInt(lengthHex, '16')
+      if (length <= 1) continue
+
+      const bytes = arrayBuffer.slice(current, current + length - 4)
+      if (bytes.byteLength === 0) break
+      const line = utf8Decoder.decode(bytes).trimEnd()
+      const [oid, ref, ...attrs] = line.split(' ')
+      const r = { ref, oid }
+      for (const attr of attrs) {
+        const [name, value] = attr.split(':')
+        if (name === 'symref-target') {
+          r.target = value
+        } else if (name === 'peeled') {
+          r.peeled = value
+        }
+      }
+      yield Object.freeze(r)
+
+      current += length - 4
+    }
+  }
+}
+
+/**
+ *
+ * @param {string} ownerName
  * @param {string} gistID
  * @param {string} path
  * @returns {Promise<string>}
@@ -85,10 +128,21 @@ async function fetchGitHubGistFile(ownerName, gistID, path = '') {
 /**
  *
  * @param {string} markdown
+ * @param {string} path
  * @param {undefined | URLSearchParams | Map} options
  * @returns {string}
  */
-function renderMarkdown(markdown, options) {
+function renderMarkdown(markdown, path, options) {
+  const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || []
+  if (extension && extension !== 'md') {
+    markdown = [
+      `\`${path}\``,
+      `~~~~~~~~~~~~${extension}`,
+      markdown,
+      '~~~~~~~~~~~~',
+    ].join('\n')
+  }
+
   let html = md.render(markdown)
 
   if (options && options.has('theme')) {
@@ -131,22 +185,42 @@ function* GetHealth() {
       '4478530fc40c3bf1208f8ea477f455ad34da308d',
       'readme.md',
     )
-    const html = renderMarkdown(sourceText, searchParams)
+    const html = renderMarkdown(sourceText, 'readme.md', searchParams)
     return resHTML(html)
   }
 }
+
+const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
 function* RawGitHubRepoFile() {
   yield '/1/github/'
   const [ownerName] = yield /^[-_a-z\d]+/i
   yield '/'
-  const [repoName] = yield /^[-_a-z\d]+/i
+  const [repoName] = yield githubRepoNameRegex
   yield '@'
   const [sha] = yield /^[a-z\d]{40}/i
   yield '/'
   const [path] = yield /^.+$/
 
-  return async () => await fetchGitHubRepoFile(ownerName, repoName, sha, path)
+  async function fetchText() {
+    return await fetchGitHubRepoFile(ownerName, repoName, sha, path)
+  }
+
+  return { fetchText, path }
+}
+
+function* RawGitHubRepoRefs() {
+  yield '/1/github/'
+  const [ownerName] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const [repoName] = yield githubRepoNameRegex
+  yield '/refs'
+
+  async function fetchJSONIterable() {
+    return await fetchGitHubRepoRefs(ownerName, repoName)
+  }
+
+  return { fetchJSONIterable }
 }
 
 function* RawGitHubGistFile() {
@@ -158,37 +232,60 @@ function* RawGitHubGistFile() {
   const [path] = yield /^.+$/
   // const addMarkdownCodeWrapper = yield read('addMarkdownCodeWrapper', false)
 
-  return async () => {
-    const source = await fetchGitHubGistFile(ownerName, gistID, path)
-    const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || [];
-    if (extension) {
-      return [`\`${path}\``, `~~~~~~~~~~~~${extension}`, source, "~~~~~~~~~~~~"].join("\n");
-    }
-
-    return source
+  async function fetchText() {
+    return await fetchGitHubGistFile(ownerName, gistID, path)
   }
+
+  return { fetchText, path }
 }
 
 function* GetViewFile() {
   yield '/view'
   // yield write('addMarkdownCodeWrapper', true)
-  const fetchText = yield [RawGitHubRepoFile, RawGitHubGistFile];
+  const { fetchText, path } = yield [RawGitHubRepoFile, RawGitHubGistFile]
 
   return async () => {
     const sourceText = await fetchText()
-    const params = new Map([['theme', '']]);
-    const html = renderMarkdown(sourceText, params)
+    const params = new Map([['theme', '']])
+    const html = renderMarkdown(sourceText, path, params)
     return resHTML(html)
   }
 }
 
-function* GetGitHubFile() {
-  const fetchText = yield RawGitHubRepoFile;
+function* GetGitHubRepoFile() {
+  const { fetchText, path } = yield RawGitHubRepoFile
 
   return async ({ searchParams }) => {
     const sourceText = await fetchText()
-    const html = renderMarkdown(sourceText, searchParams)
+    const html = renderMarkdown(sourceText, path, searchParams)
     return resHTML(html)
+  }
+}
+
+function* GetGitHubRepoRefs() {
+  const { fetchJSONIterable } = yield RawGitHubRepoRefs
+
+  return async ({ searchParams }) => {
+    const jsonGenerator = await fetchJSONIterable()
+    const json = Array.from(jsonGenerator())
+    return resJSON(json)
+  }
+}
+
+function* GetGitHubRepoHeadRef() {
+  const { fetchJSONIterable } = yield RawGitHubRepoRefs
+  yield '/heads/'
+  const branch = yield ['master', 'main']
+
+  return async ({ searchParams }) => {
+    const jsonGenerator = await fetchJSONIterable()
+    for (const line of jsonGenerator()) {
+      if (line.ref === `refs/heads/${branch}`) {
+        return resJSON({ sha: line.oid })
+      }
+    }
+
+    return resJSON({ error: true }, Status.notFound)
   }
 }
 
@@ -201,7 +298,7 @@ function* GetGitHubGist() {
 
   return async ({ searchParams }) => {
     const sourceText = await fetchGitHubGistFile(ownerName, gistID)
-    const html = renderMarkdown(sourceText, searchParams)
+    const html = renderMarkdown(sourceText, '', searchParams)
     return resHTML(html)
   }
 }
@@ -216,15 +313,20 @@ function* GetGitHubGistFile() {
 
   return async ({ searchParams }) => {
     let sourceText = await fetchGitHubGistFile(ownerName, gistID, path)
-    if (searchParams.has('theme') && path.endsWith('.lua')) {
-      sourceText = [`\`${path}\``, "~~~~~~~~~~~~lua", sourceText, "~~~~~~~~~~~~"].join("\n");
-    }
-    const html = renderMarkdown(sourceText, searchParams)
+    const html = renderMarkdown(sourceText, path, searchParams)
     return resHTML(html)
   }
 }
 
-const routes = [GetHealth, GetGitHubGistFile, GetGitHubGist, GetGitHubFile, GetViewFile]
+const routes = [
+  GetHealth,
+  GetGitHubGistFile,
+  GetGitHubGist,
+  GetGitHubRepoFile,
+  GetViewFile,
+  GetGitHubRepoRefs,
+  GetGitHubRepoHeadRef,
+]
 
 function* Router() {
   return yield routes

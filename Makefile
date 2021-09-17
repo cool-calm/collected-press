@@ -28,6 +28,7 @@ GET_not_found_valid_repo:
 
 GET_github_rate_limit:
 	@curl -s https://api.github.com/rate_limit
+	httpstat https://api.github.com/rate_limit
 
 GET_github_org_repos:
 	@curl -s https://api.github.com/orgs/RoyalIcing/repos | jq ".[] | .name"
@@ -37,3 +38,10 @@ GET_github_emojis:
 
 GET_github_gist:
 	curl -H "Accept: application/vnd.github.v3+json" "https://api.github.com/gists/e7d97cdf38a2907924ea12e4ebdf3c85"
+
+GET_github_refs:
+	httpstat "https://github.com/RoyalIcing/yieldmachine.git/info/refs?service=git-upload-pack"
+
+GET_yieldmachine_refs:
+	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/refs
+	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/refs/heads/master
