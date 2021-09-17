@@ -156,11 +156,13 @@ function* RawGitHubGistFile() {
   const [gistID] = yield /^[a-z\d]+/i
   yield '/'
   const [path] = yield /^.+$/
+  // const addMarkdownCodeWrapper = yield read('addMarkdownCodeWrapper', false)
 
   return async () => {
     const source = await fetchGitHubGistFile(ownerName, gistID, path)
-    if (path.endsWith('.lua')) {
-      return [`\`${path}\``, "~~~~~~~~~~~~lua", source, "~~~~~~~~~~~~"].join("\n");
+    const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || [];
+    if (extension) {
+      return [`\`${path}\``, `~~~~~~~~~~~~${extension}`, source, "~~~~~~~~~~~~"].join("\n");
     }
 
     return source
@@ -169,6 +171,7 @@ function* RawGitHubGistFile() {
 
 function* GetViewFile() {
   yield '/view'
+  // yield write('addMarkdownCodeWrapper', true)
   const fetchText = yield [RawGitHubRepoFile, RawGitHubGistFile];
 
   return async () => {
