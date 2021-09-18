@@ -4,6 +4,9 @@ CURL_TRAIL := '\n\n Status: %{http_code} \n Latency: %{time_total}s\n'
 production:
 	wrangler publish
 
+staging:
+	wrangler publish --env staging
+
 preview:
 	wrangler preview --watch --url "https://example.com/health"
 

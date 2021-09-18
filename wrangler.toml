@@ -5,3 +5,6 @@ account_id = ""
 workers_dev = true
 route = ""
 zone_id = ""
+
+[env.staging]
+workers_dev = true

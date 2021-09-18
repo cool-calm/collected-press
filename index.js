@@ -80,33 +80,65 @@ async function fetchGitHubRepoRefs(ownerName, repoName) {
   const arrayBuffer = await res.arrayBuffer()
   return function* decodePktLine() {
     let current = 0
-    while (true) {
+    linesLoop: while (true) {
       const utf8Decoder = new TextDecoder('utf-8')
       const lengthHex = utf8Decoder.decode(
         arrayBuffer.slice(current, current + 4),
       )
       current += 4
       const length = parseInt(lengthHex, '16')
-      if (length <= 1) continue
+      if (length <= 1) {
+        continue linesLoop
+      }
 
       const bytes = arrayBuffer.slice(current, current + length - 4)
-      if (bytes.byteLength === 0) break
+      if (bytes.byteLength === 0) break linesLoop;
+      current += length - 4
+      
       const line = utf8Decoder.decode(bytes).trimEnd()
       const [oid, ref, ...attrs] = line.split(' ')
-      const r = { ref, oid }
+      if (oid === '#') {
+        continue linesLoop;
+      }
+      
+      const r = { ref, oid };
+      // r.attrs = attrs;
       for (const attr of attrs) {
         const [name, value] = attr.split(':')
         if (name === 'symref-target') {
           r.target = value
         } else if (name === 'peeled') {
           r.peeled = value
+        } else if (name === 'symref=HEAD') {
+          r.HEADRef = value
+        } else if (name === 'object-format') {
+          r.objectFormat = value
+        } else if (name === 'agent') {
+          r.agent = value
         }
       }
       yield Object.freeze(r)
-
-      current += length - 4
     }
   }
+}
+
+function findHEADInRefs(refsIterable) {
+  for (const line of refsIterable) {
+    if (line.HEADRef) {
+      return { sha: line.oid, HEADRef: line.HEADRef }
+    }
+    break;
+  }
+  return null;
+}
+
+function findBranchInRefs(refsIterable, branch) {
+  for (const line of refsIterable) {
+    if (line.ref === `refs/heads/${branch}`) {
+      return { sha: line.oid }
+    }
+  }
+  return null;
 }
 
 /**
@@ -187,6 +219,31 @@ function* GetHealth() {
       'readme.md',
     )
     const html = renderMarkdown(sourceText, 'readme.md', searchParams)
+    return resHTML(html)
+  }
+}
+
+function* GetHome() {
+  yield '/'
+  yield mustEnd
+
+  return async ({ searchParams }) => {
+    const refsGenerator = await fetchGitHubRepoRefs('RoyalIcing', 'collected-press')
+    const HEAD = findHEADInRefs(refsGenerator())
+    if (HEAD == null) {
+      return resHTML("<p>No content</p>", Status.notFound)
+    }
+    
+    const sourceText = await fetchGitHubRepoFile(
+      'RoyalIcing',
+      'collected-press',
+      HEAD.sha,
+      'README.md',
+    )
+    const params = new Map([['theme', '']])
+    const html = renderMarkdown(sourceText, 'readme.md', params
+  )
+  
     return resHTML(html)
   }
 }
@@ -274,18 +331,33 @@ function* GetGitHubRepoRefs() {
   }
 }
 
-function* GetGitHubRepoHeadRef() {
+function* GetGitHubRepoHeadsRef() {
   const { fetchJSONIterable } = yield RawGitHubRepoRefs
   yield '/heads/'
   const branch = yield ['master', 'main']
   yield mustEnd
 
   return async ({ searchParams }) => {
+    const refsGenerator = await fetchJSONIterable()
+    const info = findBranchInRefs(refsGenerator(), branch)
+    if (info) {
+      return resJSON(info)
+    }
+
+    return resJSON({ error: true }, Status.notFound)
+  }
+}
+
+function* GetGitHubRepoHEADRef() {
+  const { fetchJSONIterable } = yield RawGitHubRepoRefs
+  yield '/HEAD'
+  yield mustEnd
+
+  return async ({ searchParams }) => {
     const jsonGenerator = await fetchJSONIterable()
-    for (const line of jsonGenerator()) {
-      if (line.ref === `refs/heads/${branch}`) {
-        return resJSON({ sha: line.oid })
-      }
+    const HEAD = findHEADInRefs(jsonGenerator())
+    if (HEAD) {
+      return resJSON(HEAD)
     }
 
     return resJSON({ error: true }, Status.notFound)
@@ -340,12 +412,14 @@ function* GetGitHubGistFile() {
 
 const routes = [
   GetHealth,
+  GetHome,
   GetGitHubGistFile,
   GetGitHubGist,
   GetGitHubRepoFile,
   GetViewFile,
   GetGitHubRepoRefs,
-  GetGitHubRepoHeadRef,
+  GetGitHubRepoHEADRef,
+  GetGitHubRepoHeadsRef,
   GetGitHubRepoTagRefs,
 ]
 
