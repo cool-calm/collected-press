@@ -1,6 +1,6 @@
 # Collected Press
 
-Render Markdown from any GitHub repo or gist.
+Render Markdown from any GitHub repo or gist. Live!
 
 ## Examples
 
