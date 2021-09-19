@@ -236,11 +236,7 @@ function renderStyledHTML(...contentHTML) {
 function renderMarkdown(markdown, path, options) {
   const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || []
   if (extension && extension !== 'md') {
-    markdown = [
-      `~~~~~~~~~~~~${extension}`,
-      markdown,
-      '~~~~~~~~~~~~',
-    ].join('\n')
+    markdown = [`~~~~~~~~~~~~${extension}`, markdown, '~~~~~~~~~~~~'].join('\n')
   }
 
   let html = md.render(markdown)
@@ -249,7 +245,6 @@ function renderMarkdown(markdown, path, options) {
   if (options && options.has('theme')) {
     html = renderStyledHTML(html)
   }
-
 
   return html
 }
@@ -297,11 +292,12 @@ function* GetHome() {
   }
 }
 
+const githubOwnerNameRegex = /^[-_a-z\d]+/i
 const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
 function* RawGitHubRepoFile() {
   yield '/1/github/'
-  const [ownerName] = yield /^[-_a-z\d]+/i
+  const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [repoName] = yield githubRepoNameRegex
   yield '@'
@@ -318,7 +314,7 @@ function* RawGitHubRepoFile() {
 
 function* RawGitHubRepoList() {
   yield '/1/github/'
-  const [ownerName] = yield /^[-_a-z\d]+/i
+  const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [repoName] = yield githubRepoNameRegex
   yield '@'
@@ -338,7 +334,7 @@ function* RawGitHubRepoList() {
 
 function* RawGitHubRepoRefs() {
   yield '/1/github/'
-  const [ownerName] = yield /^[-_a-z\d]+/i
+  const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [repoName] = yield githubRepoNameRegex
   yield '/refs'
@@ -352,7 +348,7 @@ function* RawGitHubRepoRefs() {
 
 function* RawGitHubGistFile() {
   yield '/1/github/gist/'
-  const [ownerName] = yield /^[-_a-z\d]+/i
+  const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [gistID] = yield /^[a-z\d]+/i
   yield '/'
@@ -368,7 +364,7 @@ function* RawGitHubGistFile() {
 
 function* renderGitHubBreadcrumbs(ownerName, repoName, sha, path) {
   yield `<nav><ul>`
-  yield `<li><a href="/view/1/github/${ownerName}/${repoName}@${sha}/"><code>${"/"}</code></a>`
+  yield `<li><a href="/view/1/github/${ownerName}/${repoName}@${sha}/"><code>${'/'}</code></a>`
   yield* path
     .replace(/\//g, () => '/\u0000')
     .split('\u0000')
@@ -418,6 +414,41 @@ function* GetViewFile() {
       )
       return resHTML(html)
     }
+  }
+}
+
+function* GetViewRepo() {
+  yield '/github/'
+  const [ownerName] = yield githubOwnerNameRegex
+  yield '/'
+  const [repoName] = yield githubRepoNameRegex
+  yield mustEnd
+
+  return async ({ searchParams }) => {
+    const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
+    const headRef = findHEADInRefs(refsGenerator())
+    const tagRefs = Array.from(
+      bitsy(function*(ref) {
+        if (ref.ref.startsWith(`refs/tags/`) && !ref.ref.endsWith('^{}')) {
+          yield ref
+        }
+      }).iterate(refsGenerator()),
+    )
+    const html = renderStyledHTML(
+      // ...renderGitHubBreadcrumbs(ownerName, repoName, sha, path),
+      '<article>',
+      `<h1>${ownerName} / ${repoName}</h1>`,
+      '<ul>',
+      `<li>${headRef.HEADRef}: <a href="/view/1/github/${ownerName}/${repoName}@${headRef.sha}/">${headRef.sha}</a>`,
+      ...Array.from(
+        tagRefs,
+        ref =>
+          `<li>${ref.ref}: <a href="/view/1/github/${ownerName}/${repoName}@${ref.sha}/">${ref.oid}</a>`,
+      ),
+      '</ul>',
+      '</article>',
+    )
+    return resHTML(html)
   }
 }
 
@@ -506,7 +537,7 @@ function* GetGitHubRepoListFiles() {
 
 function* GetGitHubGist() {
   yield '/1/github/gist/'
-  const [ownerName] = yield /^[-_a-z\d]+/i
+  const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [gistID] = yield /^[a-z\d]+/i
   yield mustEnd
@@ -520,7 +551,7 @@ function* GetGitHubGist() {
 
 function* GetGitHubGistFile() {
   yield '/1/github/gist/'
-  const [ownerName] = yield /^[-_a-z\d]+/i
+  const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [gistID] = yield /^[a-z\d]+/i
   yield '/'
@@ -540,6 +571,7 @@ const routes = [
   GetGitHubGist,
   GetGitHubRepoFile,
   GetViewFile,
+  GetViewRepo,
   GetGitHubRepoRefs,
   GetGitHubRepoHEADRef,
   GetGitHubRepoHeadsRef,
