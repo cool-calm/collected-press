@@ -49,6 +49,10 @@ GET_yieldmachine_refs:
 	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/refs
 	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/refs/heads/master
 
+GET_yieldmachine_files:
+	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/
+	# @curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/
+
 GET_react_refs:
 	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/facebook/react/refs/heads/main
 	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/facebook/react/refs/tags

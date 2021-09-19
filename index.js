@@ -72,9 +72,43 @@ async function fetchGitHubRepoFile(ownerName, repoName, tag, path) {
  *
  * @param {string} ownerName
  * @param {string} repoName
+ * @param {string} tag
+ * @param {string} path
+ * @returns {Promise<string[]>}
+ */
+async function listGitHubRepoFiles(ownerName, repoName, tag, path) {
+  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
+  const sourceRes = await fetch(sourceURL)
+  if (sourceRes.status >= 400) {
+    throw resJSON({ sourceURL, error: true }, sourceRes.status)
+  }
+
+  const foundLinks = []
+  const transformedRes = new HTMLRewriter()
+    .on('tr td.name a', {
+      element(el) {
+        let path = el.getAttribute('href')
+        if (path.startsWith('.')) return
+        path = path.replace(/^\/gh\//, "/")
+        foundLinks.push(path)
+      },
+    })
+    .transform(sourceRes)
+
+  await transformedRes.text()
+
+  return foundLinks
+}
+
+/**
+ *
+ * @param {string} ownerName
+ * @param {string} repoName
  * @returns {Promise<Array<string>>}
  */
 async function fetchGitHubRepoRefs(ownerName, repoName) {
+  // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/models/GitPktLine.js
+  // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/api/listServerRefs.js
   const url = `https://github.com/${ownerName}/${repoName}.git/info/refs?service=git-upload-pack`
   const res = await fetch(url)
   const arrayBuffer = await res.arrayBuffer()
@@ -92,16 +126,18 @@ async function fetchGitHubRepoRefs(ownerName, repoName) {
       }
 
       const bytes = arrayBuffer.slice(current, current + length - 4)
-      if (bytes.byteLength === 0) break linesLoop;
+      if (bytes.byteLength === 0) break linesLoop
       current += length - 4
-      
+
       const line = utf8Decoder.decode(bytes).trimEnd()
-      const [oid, ref, ...attrs] = line.split(' ')
+      const [oid, refRaw, ...attrs] = line.split(' ')
       if (oid === '#') {
-        continue linesLoop;
+        continue linesLoop
       }
-      
-      const r = { ref, oid };
+
+      const [ref] = refRaw.split('\u0000')
+
+      const r = { ref, oid }
       // r.attrs = attrs;
       for (const attr of attrs) {
         const [name, value] = attr.split(':')
@@ -127,9 +163,9 @@ function findHEADInRefs(refsIterable) {
     if (line.HEADRef) {
       return { sha: line.oid, HEADRef: line.HEADRef }
     }
-    break;
+    break
   }
-  return null;
+  return null
 }
 
 function findBranchInRefs(refsIterable, branch) {
@@ -138,7 +174,7 @@ function findBranchInRefs(refsIterable, branch) {
       return { sha: line.oid }
     }
   }
-  return null;
+  return null
 }
 
 /**
@@ -228,12 +264,15 @@ function* GetHome() {
   yield mustEnd
 
   return async ({ searchParams }) => {
-    const refsGenerator = await fetchGitHubRepoRefs('RoyalIcing', 'collected-press')
+    const refsGenerator = await fetchGitHubRepoRefs(
+      'RoyalIcing',
+      'collected-press',
+    )
     const HEAD = findHEADInRefs(refsGenerator())
     if (HEAD == null) {
-      return resHTML("<p>No content</p>", Status.notFound)
+      return resHTML('<p>No content</p>', Status.notFound)
     }
-    
+
     const sourceText = await fetchGitHubRepoFile(
       'RoyalIcing',
       'collected-press',
@@ -241,9 +280,8 @@ function* GetHome() {
       'README.md',
     )
     const params = new Map([['theme', '']])
-    const html = renderMarkdown(sourceText, 'readme.md', params
-  )
-  
+    const html = renderMarkdown(sourceText, 'readme.md', params)
+
     return resHTML(html)
   }
 }
@@ -265,6 +303,23 @@ function* RawGitHubRepoFile() {
   }
 
   return { fetchText, path }
+}
+
+function* RawGitHubRepoList() {
+  yield '/1/github/'
+  const [ownerName] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const [repoName] = yield githubRepoNameRegex
+  yield '@'
+  const [sha] = yield /^[a-z\d]{40}/i
+  yield '/'
+  const [path] = yield /^.*\/$/
+
+  async function fetchJSON() {
+    return await listGitHubRepoFiles(ownerName, repoName, sha, path)
+  }
+
+  return { fetchJSON, path }
 }
 
 function* RawGitHubRepoRefs() {
@@ -371,12 +426,24 @@ function* GetGitHubRepoTagRefs() {
 
   return async ({ searchParams }) => {
     const jsonGenerator = await fetchJSONIterable()
-    const json = Array.from(bitsy(function*(line) {
-      if (line.ref.startsWith(`refs/tags/`)) {
-        yield line
-      }
-    }).iterate(jsonGenerator()))
-    
+    const json = Array.from(
+      bitsy(function*(line) {
+        if (line.ref.startsWith(`refs/tags/`)) {
+          yield line
+        }
+      }).iterate(jsonGenerator()),
+    )
+
+    return resJSON(json)
+  }
+}
+
+function* GetGitHubRepoListFiles() {
+  yield '/list'
+  const { fetchJSON, path } = yield RawGitHubRepoList
+
+  return async () => {
+    const json = await fetchJSON()
     return resJSON(json)
   }
 }
@@ -421,6 +488,7 @@ const routes = [
   GetGitHubRepoHEADRef,
   GetGitHubRepoHeadsRef,
   GetGitHubRepoTagRefs,
+  GetGitHubRepoListFiles,
 ]
 
 function* Router() {
