@@ -3,6 +3,7 @@ import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
+import mimeDB from 'mime-db'
 
 const Status = {
   success: 200,
@@ -58,14 +59,20 @@ function resPlainText(html, status = Status.success, headers = new Headers()) {
  * @param {string} path
  * @returns {Promise<string>}
  */
-async function fetchGitHubRepoFile(ownerName, repoName, tag, path) {
+async function fetchGitHubRepoFile(
+  ownerName,
+  repoName,
+  tag,
+  path,
+  transformRes = res => res.text(),
+) {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON({ sourceURL, error: true }, sourceRes.status)
   }
 
-  return await sourceRes.text()
+  return transformRes(sourceRes)
 }
 
 /**
@@ -295,6 +302,48 @@ function* GetHome() {
 const githubOwnerNameRegex = /^[-_a-z\d]+/i
 const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
+let extensionToMimeType = null
+function mimeTypeForPath(path) {
+  if (!extensionToMimeType) {
+    extensionToMimeType = new Map(
+      bitsy(function*([mimeType, info]) {
+        if (!Array.isArray(info.extensions)) return
+
+        for (const extension of info.extensions) {
+          yield [extension, mimeType]
+        }
+      }).iterate(Object.entries(mimeDB)),
+    )
+  }
+
+  const [extension] = path.split('.').reverse()
+  return extensionToMimeType.get(extension)
+}
+
+let textExtensions = null
+function pathIsText(path) {
+  if (!textExtensions) {
+    textExtensions = new Set(
+      bitsy(function*([mimeType, info]) {
+        if (
+          mimeType.startsWith('text/') ||
+          mimeType === 'application/json' ||
+          mimeType === 'application/javascript' ||
+          mimeType.endsWith('+json') ||
+          mimeType.endsWith('+xml') ||
+          'charset' in info
+        )
+          if (info.extensions) {
+            yield* info.extensions
+          }
+      }).iterate(Object.entries(mimeDB)),
+    )
+  }
+
+  const [extension] = path.split('.').reverse()
+  return textExtensions.has(extension)
+}
+
 function* RawGitHubRepoFile() {
   yield '/1/github/'
   const [ownerName] = yield githubOwnerNameRegex
@@ -306,10 +355,24 @@ function* RawGitHubRepoFile() {
   const [path] = yield /^.*[^\/]$/
 
   async function fetchText() {
-    return await fetchGitHubRepoFile(ownerName, repoName, sha, path)
+    return await fetchGitHubRepoFile(ownerName, repoName, sha, path, res =>
+      res.text(),
+    )
+  }
+  async function fetchBinary() {
+    return await fetchGitHubRepoFile(ownerName, repoName, sha, path, res =>
+      res.arrayBuffer(),
+    )
   }
 
-  return { fetchText, ownerName, repoName, sha, path }
+  const mimeType = mimeTypeForPath(path)
+
+  return Object.freeze(
+    Object.assign(
+      { ownerName, repoName, sha, path, mimeType },
+      pathIsText(path) ? { fetchText } : { fetchBinary },
+    ),
+  )
 }
 
 function* RawGitHubRepoList() {
@@ -381,11 +444,16 @@ function* renderGitHubBreadcrumbs(ownerName, repoName, sha, path) {
 function* GetViewFile() {
   yield '/view'
   // yield write('addMarkdownCodeWrapper', true)
-  const { fetchText, fetchJSON, ownerName, repoName, sha, path } = yield [
-    RawGitHubRepoFile,
-    RawGitHubRepoList,
-    RawGitHubGistFile,
-  ]
+  const {
+    fetchText,
+    fetchBinary,
+    fetchJSON,
+    ownerName,
+    repoName,
+    sha,
+    path,
+    mimeType,
+  } = yield [RawGitHubRepoFile, RawGitHubRepoList, RawGitHubGistFile]
 
   return async () => {
     if (fetchText) {
@@ -398,7 +466,7 @@ function* GetViewFile() {
         renderMarkdown(sourceText, path, new Map()),
       )
       return resHTML(html)
-    } else {
+    } else if (fetchJSON) {
       const filePaths = await fetchJSON()
       const prefix = `${ownerName}/${repoName}@${sha}/`
       const html = renderStyledHTML(
@@ -413,6 +481,13 @@ function* GetViewFile() {
         '</ul></article>',
       )
       return resHTML(html)
+    } else if (fetchBinary) {
+      console.log("returning binary")
+      return new Response(await fetchBinary(), {
+        headers: new Headers({ 'Content-Type': mimeType }),
+      })
+    } else {
+      return resPlainText('Unknown file type', 500)
     }
   }
 }
@@ -444,7 +519,7 @@ function* GetViewRepo() {
       ...Array.from(
         tagRefs,
         ref =>
-          `<li>${ref.ref}: <a href="/view/1/github/${ownerName}/${repoName}@${ref.sha}/">${ref.oid}</a>`,
+          `<li>${ref.ref}: <a href="/view/1/github/${ownerName}/${repoName}@${ref.oid}/">${ref.oid}</a>`,
       ),
       '</ul>',
       '</article>',
