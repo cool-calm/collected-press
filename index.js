@@ -89,7 +89,7 @@ async function listGitHubRepoFiles(ownerName, repoName, tag, path) {
       element(el) {
         let path = el.getAttribute('href')
         if (path.startsWith('.')) return
-        path = path.replace(/^\/gh\//, "/")
+        path = path.replace(/^\/gh\//, "")
         foundLinks.push(path)
       },
     })
@@ -194,6 +194,33 @@ async function fetchGitHubGistFile(ownerName, gistID, path = '') {
   return await sourceRes.text()
 }
 
+function renderStyledHTML(...contentHTML) {
+  return [
+    `<!doctype html>`,
+    `<html lang=en>`,
+    `<meta charset=utf-8>`,
+    `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
+    // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
+    '<link href="https://unpkg.com/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
+    '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
+    `<style>
+    body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
+    a { color: #0060F2; }
+    a:hover { text-decoration: underline; }
+    p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: 1rem; }
+    h1 { font-size: 2em; font-weight: 600; }
+    h2 { font-size: 1.5em; font-weight: 600; }
+    h3 { font-size: 1.25em; font-weight: 600; }
+    h4 { font-size: 1em; font-weight: 600; }
+    h5 { font-size: .875em; font-weight: 600; }
+    h6 { font-size: .85em; font-weight: 600; }
+    img { display: inline-block; }
+    ul { list-style: inside; }
+    </style>`,
+    ...contentHTML,
+  ].join('\n')
+}
+
 /**
  *
  * @param {string} markdown
@@ -215,29 +242,7 @@ function renderMarkdown(markdown, path, options) {
   let html = md.render(markdown)
 
   if (options && options.has('theme')) {
-    html = [
-      `<!doctype html>`,
-      `<html lang=en>`,
-      `<meta charset=utf-8>`,
-      `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
-      // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
-      '<link href="https://unpkg.com/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
-      '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
-      `<style>
-      body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
-      p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: 1rem; }
-      h1 { font-size: 2em; font-weight: 600; }
-      h2 { font-size: 1.5em; font-weight: 600; }
-      h3 { font-size: 1.25em; font-weight: 600; }
-      h4 { font-size: 1em; font-weight: 600; }
-      h5 { font-size: .875em; font-weight: 600; }
-      h6 { font-size: .85em; font-weight: 600; }
-      a { color: #0060F2; }
-      a:hover { text-decoration: underline; }
-      img { display: inline-block; }
-      </style>`,
-      html,
-    ].join('\n')
+    html = renderStyledHTML(html)
   }
 
   return html
@@ -367,8 +372,9 @@ function* GetViewFile() {
       const html = renderMarkdown(sourceText, path, params)
       return resHTML(html)
     } else {
-      const json = await fetchJSON()
-      return resJSON(json)
+      const filePaths = await fetchJSON()
+      const html = renderStyledHTML(`path:"${path}"`, '<ul>', ...filePaths.map(path => `<li>${path}`), '</ul>')
+      return resHTML(html)
     }
   }
 }
