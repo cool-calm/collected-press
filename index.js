@@ -296,7 +296,7 @@ function* RawGitHubRepoFile() {
   yield '@'
   const [sha] = yield /^[a-z\d]{40}/i
   yield '/'
-  const [path] = yield /^.+$/
+  const [path] = yield /^.*[^\/]$/
 
   async function fetchText() {
     return await fetchGitHubRepoFile(ownerName, repoName, sha, path)
@@ -312,8 +312,11 @@ function* RawGitHubRepoList() {
   const [repoName] = yield githubRepoNameRegex
   yield '@'
   const [sha] = yield /^[a-z\d]{40}/i
+  // const [path] = yield [/^[\/]$/, /^[\/].+[\/]$/]
+  // const [path] = yield /^[\/](.+[\/])?$/
   yield '/'
-  const [path] = yield /^.*\/$/
+  const [path] = yield /^(.+[\/])?$/
+  // console.log({path})
 
   async function fetchJSON() {
     return await listGitHubRepoFiles(ownerName, repoName, sha, path)
@@ -355,13 +358,18 @@ function* RawGitHubGistFile() {
 function* GetViewFile() {
   yield '/view'
   // yield write('addMarkdownCodeWrapper', true)
-  const { fetchText, path } = yield [RawGitHubRepoFile, RawGitHubGistFile]
+  const { fetchText, fetchJSON, path } = yield [RawGitHubRepoFile, RawGitHubRepoList, RawGitHubGistFile]
 
   return async () => {
-    const sourceText = await fetchText()
-    const params = new Map([['theme', '']])
-    const html = renderMarkdown(sourceText, path, params)
-    return resHTML(html)
+    if (fetchText) {
+      const sourceText = await fetchText()
+      const params = new Map([['theme', '']])
+      const html = renderMarkdown(sourceText, path, params)
+      return resHTML(html)
+    } else {
+      const json = await fetchJSON()
+      return resJSON(json)
+    }
   }
 }
 
