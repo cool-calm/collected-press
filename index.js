@@ -89,7 +89,7 @@ async function listGitHubRepoFiles(ownerName, repoName, tag, path) {
       element(el) {
         let path = el.getAttribute('href')
         if (path.startsWith('.')) return
-        path = path.replace(/^\/gh\//, "")
+        path = path.replace(/^\/gh\//, '')
         foundLinks.push(path)
       },
     })
@@ -215,7 +215,8 @@ function renderStyledHTML(...contentHTML) {
     h5 { font-size: .875em; font-weight: 600; }
     h6 { font-size: .85em; font-weight: 600; }
     img { display: inline-block; }
-    ul { list-style: inside; }
+    article ul { list-style: inside; }
+    nav ul { display: flex; flex-wrap: wrap; gap: 0.333em; }
     </style>`,
     ...contentHTML,
   ].join('\n')
@@ -232,7 +233,6 @@ function renderMarkdown(markdown, path, options) {
   const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || []
   if (extension && extension !== 'md') {
     markdown = [
-      `\`${path}\``,
       `~~~~~~~~~~~~${extension}`,
       markdown,
       '~~~~~~~~~~~~',
@@ -240,10 +240,12 @@ function renderMarkdown(markdown, path, options) {
   }
 
   let html = md.render(markdown)
+  html = `<article>${html}</article>`
 
   if (options && options.has('theme')) {
     html = renderStyledHTML(html)
   }
+
 
   return html
 }
@@ -307,7 +309,7 @@ function* RawGitHubRepoFile() {
     return await fetchGitHubRepoFile(ownerName, repoName, sha, path)
   }
 
-  return { fetchText, path }
+  return { fetchText, ownerName, repoName, sha, path }
 }
 
 function* RawGitHubRepoList() {
@@ -327,7 +329,7 @@ function* RawGitHubRepoList() {
     return await listGitHubRepoFiles(ownerName, repoName, sha, path)
   }
 
-  return { fetchJSON, path }
+  return { fetchJSON, ownerName, repoName, sha, path }
 }
 
 function* RawGitHubRepoRefs() {
@@ -360,20 +362,55 @@ function* RawGitHubGistFile() {
   return { fetchText, path }
 }
 
+function* renderGitHubBreadcrumbs(ownerName, repoName, sha, path) {
+  yield `<nav><ul>`
+  yield* path
+    .replace(/\//g, () => '/\u0000')
+    .split('\u0000')
+    .filter(s => s.length !== 0)
+    .map(
+      (component, index, components) =>
+        `<li><a href="/view/1/github/${ownerName}/${repoName}@${sha}/${components
+          .slice(0, index + 1)
+          .join('')}"><code>${component}</code></a>`,
+    )
+  yield '</ul></nav>'
+}
+
 function* GetViewFile() {
   yield '/view'
   // yield write('addMarkdownCodeWrapper', true)
-  const { fetchText, fetchJSON, path } = yield [RawGitHubRepoFile, RawGitHubRepoList, RawGitHubGistFile]
+  const { fetchText, fetchJSON, ownerName, repoName, sha, path } = yield [
+    RawGitHubRepoFile,
+    RawGitHubRepoList,
+    RawGitHubGistFile,
+  ]
 
   return async () => {
     if (fetchText) {
       const sourceText = await fetchText()
-      const params = new Map([['theme', '']])
-      const html = renderMarkdown(sourceText, path, params)
+      // const params = new Map([['theme', '']])
+      const html = renderStyledHTML(
+        ...(ownerName !== undefined
+          ? renderGitHubBreadcrumbs(ownerName, repoName, sha, path)
+          : []),
+        renderMarkdown(sourceText, path, new Map()),
+      )
       return resHTML(html)
     } else {
       const filePaths = await fetchJSON()
-      const html = renderStyledHTML(`path:"${path}"`, '<ul>', ...filePaths.map(path => `<li>${path}`), '</ul>')
+      const prefix = `${ownerName}/${repoName}@${sha}/`
+      const html = renderStyledHTML(
+        ...renderGitHubBreadcrumbs(ownerName, repoName, sha, path),
+        '<article><ul>',
+        ...filePaths.map(
+          path =>
+            `<li><a href="/view/1/github/${path}">${
+              path.startsWith(prefix) ? path.slice(prefix.length) : path
+            }</a>`,
+        ),
+        '</ul></article>',
+      )
       return resHTML(html)
     }
   }
