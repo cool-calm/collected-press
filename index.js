@@ -216,7 +216,11 @@ function renderStyledHTML(...contentHTML) {
     h6 { font-size: .85em; font-weight: 600; }
     img { display: inline-block; }
     article ul { list-style: inside; }
-    nav ul { display: flex; flex-wrap: wrap; gap: 0.333em; }
+    nav ul { display: flex; flex-wrap: wrap; }
+    nav a { display: inline-block; padding: 0.5em; background: #f5f5f5; }
+    nav a { border: 1px solid #e5e5e5; }
+    nav li:not(:first-child) a { border-left: none; }
+    nav a:hover { background: #e9e9e9; border-color: #ddd; }
     </style>`,
     ...contentHTML,
   ].join('\n')
@@ -364,6 +368,7 @@ function* RawGitHubGistFile() {
 
 function* renderGitHubBreadcrumbs(ownerName, repoName, sha, path) {
   yield `<nav><ul>`
+  yield `<li><a href="/view/1/github/${ownerName}/${repoName}@${sha}/"><code>${"/"}</code></a>`
   yield* path
     .replace(/\//g, () => '/\u0000')
     .split('\u0000')

@@ -1,14 +1,17 @@
 PRODUCTION_URL := https://press.collected.workers.dev
 CURL_TRAIL := '\n\n Status: %{http_code} \n Latency: %{time_total}s\n'
 
-production:
+production: clean
 	wrangler publish
 
-staging:
+staging: clean
 	wrangler publish --env staging
 
-preview:
+preview: clean
 	wrangler preview --watch --url "https://example.com/health"
+
+clean:
+	rm -rf dist/ worker/
 
 GET_health:
 	@curl -w $(CURL_TRAIL) $(PRODUCTION_URL)/health
