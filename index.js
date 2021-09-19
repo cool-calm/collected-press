@@ -438,6 +438,7 @@ function* GetViewRepo() {
       // ...renderGitHubBreadcrumbs(ownerName, repoName, sha, path),
       '<article>',
       `<h1>${ownerName} / ${repoName}</h1>`,
+      `<h2>Refs</h2>`,
       '<ul>',
       `<li>${headRef.HEADRef}: <a href="/view/1/github/${ownerName}/${repoName}@${headRef.sha}/">${headRef.sha}</a>`,
       ...Array.from(
