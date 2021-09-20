@@ -247,7 +247,7 @@ function renderMarkdown(markdown, path, options) {
   }
 
   let html = md.render(markdown)
-  html = `<article>${html}</article>`
+  // html = `<article>${html}</article>`
 
   if (options && options.has('theme')) {
     html = renderStyledHTML(html)
