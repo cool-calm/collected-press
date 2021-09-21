@@ -1,17 +1,36 @@
+include .envrc
+
 PRODUCTION_URL := https://press.collected.workers.dev
 CURL_TRAIL := '\n\n Status: %{http_code} \n Latency: %{time_total}s\n'
 
-production: clean
-	wrangler publish
+production: sha.js
+	CF_ACCOUNT_ID=$(CF_ACCOUNT_ID) CF_ZONE_ID=$(CF_ZONE_ID) wrangler publish
 
-staging: clean
-	wrangler publish --env staging
+staging: clean sha.js
+	CF_ACCOUNT_ID=$(CF_ACCOUNT_ID) CF_ZONE_ID=$(CF_ZONE_ID) wrangler publish --env staging
 
-preview: clean
-	wrangler preview --watch --url "https://example.com/health"
+preview: clean sha.js
+	CF_ACCOUNT_ID=$(CF_ACCOUNT_ID) CF_ZONE_ID=$(CF_ZONE_ID) wrangler preview --watch  --url "https://example.com/health"
+
+logs_production:
+	CF_ACCOUNT_ID=$(CF_ACCOUNT_ID) CF_ZONE_ID=$(CF_ZONE_ID) wrangler tail
+
+logs_staging:
+	CF_ACCOUNT_ID=$(CF_ACCOUNT_ID) CF_ZONE_ID=$(CF_ZONE_ID) wrangler tail --env staging
 
 clean:
 	rm -rf dist/ worker/
+
+LATEST_SHA := $(firstword $(shell git ls-remote https://github.com/RoyalIcing/regenerated.dev --symref HEAD))
+tmp/$(LATEST_SHA):
+	@mkdir -p tmp
+	@touch tmp/$(LATEST_SHA)
+	@echo "Latest sha: $(LATEST_SHA)"
+
+sha.js: tmp/$(LATEST_SHA)
+	@echo "export const sha = '$(LATEST_SHA)'" > sha.js
+
+### Testing ###
 
 GET_health:
 	@curl -w $(CURL_TRAIL) $(PRODUCTION_URL)/health

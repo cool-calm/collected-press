@@ -4,6 +4,7 @@ import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
 import mimeDB from 'mime-db'
+// import { sha } from './sha';
 
 const Status = {
   success: 200,
@@ -15,6 +16,7 @@ const Status = {
   forbidden: 403,
   notFound: 404,
   methodNotAllowed: 405,
+  requestTimeout: 408,
   conflict: 409,
   unprocessableEntity: 422, // Validation failed
   tooManyRequests: 429,
@@ -294,6 +296,35 @@ function* GetHome() {
     )
     const params = new Map([['theme', '']])
     const html = renderMarkdown(sourceText, 'readme.md', params)
+
+    return resHTML(html)
+  }
+}
+
+function* GetDoc() {
+  yield '/docs/'
+  const name = yield 'stream-what-is-known-upfront'
+  yield mustEnd
+
+  return async ({ searchParams }) => {
+    const refsGenerator = await fetchGitHubRepoRefs(
+      'RoyalIcing',
+      'collected-press',
+    )
+    const HEAD = findHEADInRefs(refsGenerator())
+    if (HEAD == null) {
+      return resHTML('<p>No content</p>', Status.notFound)
+    }
+
+    const path = `docs/${name}.md`
+    const sourceText = await fetchGitHubRepoFile(
+      'RoyalIcing',
+      'collected-press',
+      HEAD.sha,
+      path,
+    )
+    const params = new Map([['theme', '']])
+    const html = renderMarkdown(sourceText, path, params)
 
     return resHTML(html)
   }
@@ -643,6 +674,7 @@ function* GetGitHubGistFile() {
 const routes = [
   GetHealth,
   GetHome,
+  GetDoc,
   GetGitHubGistFile,
   GetGitHubGist,
   GetGitHubRepoFile,

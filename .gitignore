@@ -8,3 +8,6 @@ wasm-pack.log
 worker/
 node_modules/
 .cargo-ok
+tmp/
+/sha.js
+.envrc
