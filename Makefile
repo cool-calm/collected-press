@@ -21,7 +21,7 @@ logs_staging:
 clean:
 	rm -rf dist/ worker/
 
-LATEST_SHA := $(firstword $(shell git ls-remote https://github.com/RoyalIcing/regenerated.dev --symref HEAD))
+LATEST_SHA := $(firstword $(shell git ls-remote https://github.com/RoyalIcing/collected-press --symref HEAD))
 tmp/$(LATEST_SHA):
 	@mkdir -p tmp
 	@touch tmp/$(LATEST_SHA)
