@@ -96,7 +96,7 @@ So what we can do is rearrange our page so that anything we know upfront, like l
   <meta name=viewport content="width=device-width, initial-scale=1.0">
   <link href="/assets/style.css" rel="stylesheet">
   <script src="/assets/main.js"></script>
-  <!-- These moves down -->
+  <!-- These move down -->
   <title>My wonderful page</title>
   <meta property="og:description" content="It’s stunning">
 </head>
