@@ -1,6 +1,6 @@
 include .envrc
 
-PRODUCTION_URL := https://press.collected.workers.dev
+PRODUCTION_URL := https://collected.press
 CURL_TRAIL := '\n\n Status: %{http_code} \n Latency: %{time_total}s\n'
 
 production: sha.js

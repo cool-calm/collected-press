@@ -11,6 +11,9 @@ const Status = {
   created: 201,
   accepted: 202,
   noContent: 204,
+  movedPermanently: 301,
+  found: 302,
+  notModified: 304,
   badRequest: 400,
   unauthorized: 401,
   forbidden: 403,
@@ -51,6 +54,10 @@ function resHTML(html, status = Status.success, headers = new Headers()) {
 function resPlainText(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
   return new Response(html, { status, headers })
+}
+function resRedirect(status = Status.found, location) {
+  headers.set('location', location.toString())
+  return new Response(undefined, { status, headers })
 }
 
 /**
@@ -698,6 +705,12 @@ function* Router() {
  */
 async function handleRequest(request, event) {
   const url = new URL(request.url)
+  // console.log('URL', request.url, url)
+  // if (url.protocol === 'http') {
+  //   url.protocol = 'https'
+  //   return resRedirect(Status.found, url)
+  // }
+
   const route = parse(url.pathname, Router())
 
   if (route.success) {

@@ -3,8 +3,9 @@ type = "webpack"
 
 account_id = ""
 workers_dev = true
-route = ""
+routes = ["collected.press/*"]
 zone_id = ""
 
 [env.staging]
-workers_dev = true
+name = "collected-press-staging"
+routes = ["staging.collected.press/*"]
