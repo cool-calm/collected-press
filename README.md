@@ -15,6 +15,11 @@ Render Markdown from any GitHub repo or gist. Live!
 - Gist: https://collected.press/1/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85
 - Repo Readme: https://collected.press/1/github/RoyalIcing/yieldmachine@4478530fc40c3bf1208f8ea477f455ad34da308d/readme.md
 
+### Navigate Repos
+
+- React: https://collected.press/github/facebook/react
+- TailwindCSS: https://collected.press/github/tailwindlabs/tailwindcss
+
 ### Refs
 
 - React’s latest SHA: https://collected.press/1/github/facebook/react/refs/HEAD

@@ -12,8 +12,10 @@ const Status = {
   accepted: 202,
   noContent: 204,
   movedPermanently: 301,
-  found: 302,
+  // Don’t use 302: https://stackoverflow.com/a/4764473/652615
+  seeOther: 303,
   notModified: 304,
+  temporaryRedirect: 307,
   badRequest: 400,
   unauthorized: 401,
   forbidden: 403,
@@ -55,7 +57,7 @@ function resPlainText(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
   return new Response(html, { status, headers })
 }
-function resRedirect(status = Status.found, location) {
+function resRedirect(status = Status.found, location, headers = new Headers()) {
   headers.set('location', location.toString())
   return new Response(undefined, { status, headers })
 }
@@ -210,6 +212,30 @@ async function fetchGitHubGistFile(ownerName, gistID, path = '') {
   return await sourceRes.text()
 }
 
+/**
+ *
+ * @param {string} bucketName
+ * @param {string} region
+ * @param {string} mimeType
+ * @param {string} sha
+ * @returns {Promise<string>}
+ */
+ async function fetchPublicS3Object(
+  bucketName,
+  region,
+  mimeType,
+  sha,
+  transformRes = res => res.arrayBuffer().then(buffer => (new TextDecoder).decode(buffer)),
+) {
+  const sourceURL = `https://${bucketName}.s3.${region}.amazonaws.com/sha256/${mimeType}/${sha}`
+  const sourceRes = await fetch(sourceURL)
+  if (sourceRes.status >= 400) {
+    throw resJSON({ sourceURL, error: true }, sourceRes.status)
+  }
+
+  return transformRes(sourceRes)
+}
+
 function renderStyledHTML(...contentHTML) {
   return [
     `<!doctype html>`,
@@ -237,6 +263,8 @@ function renderStyledHTML(...contentHTML) {
     nav a { border: 1px solid #e5e5e5; }
     nav li:not(:first-child) a { border-left: none; }
     nav a:hover { background: #e9e9e9; border-color: #ddd; }
+    form { padding: 1rem; }
+    form button { padding: 0.25rem 0.5rem; background-color: #222; color: white; border-radius: 999px; }
     </style>`,
     ...contentHTML,
   ].join('\n')
@@ -249,9 +277,9 @@ function renderStyledHTML(...contentHTML) {
  * @param {undefined | URLSearchParams | Map} options
  * @returns {string}
  */
-function renderMarkdown(markdown, path, options) {
+function renderMarkdown(markdown, path, mimeType, options) {
   const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || []
-  if (extension && extension !== 'md') {
+  if (extension && extension !== 'md' && mimeType !== 'text/markdown') {
     markdown = [`~~~~~~~~~~~~${extension}`, markdown, '~~~~~~~~~~~~'].join('\n')
   }
 
@@ -276,7 +304,7 @@ function* GetHealth() {
       '4478530fc40c3bf1208f8ea477f455ad34da308d',
       'readme.md',
     )
-    const html = renderMarkdown(sourceText, 'readme.md', searchParams)
+    const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', searchParams)
     return resHTML(html)
   }
 }
@@ -302,7 +330,7 @@ function* GetHome() {
       'README.md',
     )
     const params = new Map([['theme', '']])
-    const html = renderMarkdown(sourceText, 'readme.md', params)
+    const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', params)
 
     return resHTML(html)
   }
@@ -331,7 +359,7 @@ function* GetDoc() {
       path,
     )
     const params = new Map([['theme', '']])
-    const html = renderMarkdown(sourceText, path, params)
+    const html = renderMarkdown(sourceText, path, 'text/markdown', params)
 
     return resHTML(html)
   }
@@ -493,7 +521,7 @@ function* GetViewFile() {
     mimeType,
   } = yield [RawGitHubRepoFile, RawGitHubRepoList, RawGitHubGistFile]
 
-  return async () => {
+  return async ({ searchParams }) => {
     if (fetchText) {
       const sourceText = await fetchText()
       // const params = new Map([['theme', '']])
@@ -501,21 +529,33 @@ function* GetViewFile() {
         ...(ownerName !== undefined
           ? renderGitHubBreadcrumbs(ownerName, repoName, sha, path)
           : []),
-        renderMarkdown(sourceText, path, new Map()),
+        renderMarkdown(sourceText, path, mimeTypeForPath(path), new Map()),
       )
       return resHTML(html)
     } else if (fetchJSON) {
+      function renderPath(filePath) {
+        if (searchParams.has('images') && filePath.endsWith('.svg')) {
+          // const imageURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`;
+          const imageURL = `https://cdn.jsdelivr.net/gh/${filePath}`;
+          return `<li><a href="/view/1/github/${filePath}"><img width="20" loading=lazy src="${imageURL}"> ${
+            filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
+          }</a>`
+        }
+
+        return `<li><a href="/view/1/github/${filePath}">${
+          filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
+        }</a>`
+      }
       const filePaths = await fetchJSON()
       const prefix = `${ownerName}/${repoName}@${sha}/`
       const html = renderStyledHTML(
         ...renderGitHubBreadcrumbs(ownerName, repoName, sha, path),
+        `<form method=GET>
+        <div><input type=checkbox name=images id=images-checkbox ${searchParams.has('images') ? 'checked': ''}> <label for=images-checkbox>Images</label></div>
+        <button type=submit>Update</button>
+        </form>`,
         '<article><ul>',
-        ...filePaths.map(
-          path =>
-            `<li><a href="/view/1/github/${path}">${
-              path.startsWith(prefix) ? path.slice(prefix.length) : path
-            }</a>`,
-        ),
+        ...filePaths.map(renderPath),
         '</ul></article>',
       )
       return resHTML(html)
@@ -571,7 +611,7 @@ function* GetGitHubRepoFile() {
 
   return async ({ searchParams }) => {
     const sourceText = await fetchText()
-    const html = renderMarkdown(sourceText, path, searchParams)
+    const html = renderMarkdown(sourceText, path, mimeTypeForPath(path), searchParams)
     return resHTML(html)
   }
 }
@@ -658,7 +698,7 @@ function* GetGitHubGist() {
 
   return async ({ searchParams }) => {
     const sourceText = await fetchGitHubGistFile(ownerName, gistID)
-    const html = renderMarkdown(sourceText, '', searchParams)
+    const html = renderMarkdown(sourceText, '', '', searchParams)
     return resHTML(html)
   }
 }
@@ -673,8 +713,35 @@ function* GetGitHubGistFile() {
 
   return async ({ searchParams }) => {
     let sourceText = await fetchGitHubGistFile(ownerName, gistID, path)
-    const html = renderMarkdown(sourceText, path, searchParams)
+    const html = renderMarkdown(sourceText, path, mimeTypeForPath(path), searchParams)
     return resHTML(html)
+  }
+}
+
+// https://example.com/1/s3/object/us-west-2/collected-workspaces/text/markdown/32b4f11a5fe3fd274ce2f0338d5d9af4e30c7e226f4923f510d43410119c0855
+function* GetS3File() {
+  yield '/1/s3/object/'
+  const [region] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const [bucketName] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const mediaTypePrimary = yield ['text', 'image', 'application']
+  yield '/'
+  const [mediaTypeSecondary] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const [sha] = yield /^[a-z\d]{64}/i
+  yield mustEnd
+
+  return async ({ searchParams }) => {
+    console.log([region, bucketName, mediaTypePrimary, mediaTypeSecondary, sha])
+    const mimeType = `${mediaTypePrimary}/${mediaTypeSecondary}`
+    let sourceText = await fetchPublicS3Object(bucketName, region, mimeType, sha)
+    if (mimeType === 'text/markdown') {
+      const html = renderMarkdown(sourceText, '', mimeType, searchParams)
+      return resHTML(html)
+    } else {
+      return new Response(sourceText, { headers: new Headers({ 'content-type': mimeType })})
+    }
   }
 }
 
@@ -692,6 +759,7 @@ const routes = [
   GetGitHubRepoHeadsRef,
   GetGitHubRepoTagRefs,
   GetGitHubRepoListFiles,
+  GetS3File,
 ]
 
 function* Router() {
