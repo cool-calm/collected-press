@@ -4,18 +4,6 @@ We serve a read-only transformation of public GitHub repos. It is provided with 
 
 ----
 
-## Read GitHub HEAD Ref
-
-`/1/github/{owner}/{repo}/refs/HEAD`
-
-Get the latest SHA of the [default branch](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch), which is usually main.
-
-This is equivalent to running `git ls-remote https://github.com/owner/repo --symref HEAD` in your shell.
-
-You can use this SHA in any collected.press route that accepts them.
-
-----
-
 ## Render GitHub Repo File
 
 `/1/github/{owner}/{repo}@{sha}/{...path}`
@@ -40,6 +28,18 @@ For example a `style.css` file will get transformed into:
 CONTENTS OF style.css
 ~~~~~~~~~~~~
 ```
+
+----
+
+## Get Latest GitHub HEAD Ref
+
+`/1/github/{owner}/{repo}/refs/HEAD`
+
+Get the latest SHA of the [default branch](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch), which is usually main.
+
+This is equivalent to running `git ls-remote https://github.com/owner/repo --symref HEAD` in your shell.
+
+You can use this SHA in any collected.press route that accepts them.
 
 ----
 
