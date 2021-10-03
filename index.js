@@ -340,7 +340,7 @@ function* GetHome() {
 
 function* GetDoc() {
   yield '/docs/'
-  const name = yield 'stream-what-is-known-upfront'
+  const name = yield ['api', 'stream-what-is-known-upfront']
   yield mustEnd
 
   return async ({ searchParams }) => {
