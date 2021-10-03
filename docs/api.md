@@ -41,6 +41,15 @@ This is equivalent to running `git ls-remote https://github.com/owner/repo --sym
 
 You can use this SHA in any collected.press route that accepts them.
 
+For example, here is the [result for facebook/react](https://collected.press/1/github/facebook/react/refs/HEAD):
+
+```json
+{
+  "sha": "a4bc8ae4c1db471bb34d908dd890a09d4c774303",
+  "HEADRef": "refs/heads/main"
+}
+```
+
 ----
 
 ## View GitHub Repo
