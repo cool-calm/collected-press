@@ -37,4 +37,4 @@ Render Markdown from any GitHub repo or gist. Live!
 ## Use Cases
 
 - Allows zero-build websites. Just proxy HTTP, passing the repo, sha, and file path you want. As soon as you push changes to GitHub, it’s available to be served.
-- Great for documentation websites.
+- Great for documentation websites. In fact, our own [API docs](https://collected.press/docs/api) use it.
