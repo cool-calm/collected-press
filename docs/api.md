@@ -2,6 +2,8 @@
 
 We serve a read-only transformation of public GitHub repos. It is provided with no warranty.
 
+----
+
 ## GET GitHub HEAD Ref `/1/github/{owner}/{repo}/refs/HEAD`
 
 Get the latest SHA of the [default branch](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch), which is usually main.
@@ -9,6 +11,8 @@ Get the latest SHA of the [default branch](https://docs.github.com/en/repositori
 This is equivalent to running `git ls-remote https://github.com/owner/repo --symref HEAD` in your shell.
 
 You can use this SHA in any collected.press route that accepts them.
+
+----
 
 ## GET GitHub Repo File `/1/github/{owner}/{repo}@{sha}/{...path}`
 
@@ -33,6 +37,8 @@ CONTENTS OF style.css
 ~~~~~~~~~~~~
 ```
 
+----
+
 ## GET View GitHub Repo `/github/{owner}/{repo}`
 
 Lists the HEAD and branches for a provided GitHub repo.
@@ -45,27 +51,11 @@ For example:
 - https://collected.press/github/graphql/graphql-js
 - https://collected.press/github/facebook/react
 
+----
+
 ## GET Home `/`
 
 Renders the latest version of the collected.press [readme](https://github.com/RoyalIcing/collected-press/blob/main/README.md).
 
-```js
-const routes = [
-  GetHealth,
-  GetHome,
-  GetDoc,
-  GetGitHubGistFile,
-  GetGitHubGist,
-  GetGitHubRepoFile,
-  GetViewFile,
-  GetViewRepo,
-  GetGitHubRepoRefs,
-  GetGitHubRepoHEADRef,
-  GetGitHubRepoHeadsRef,
-  GetGitHubRepoTagRefs,
-  GetGitHubRepoListFiles,
-  GetS3File,
-]
-```
 
 [jsdelivr-github]: https://www.jsdelivr.com/?docs=gh

@@ -2,6 +2,8 @@
 
 Render Markdown from any GitHub repo or gist. Live!
 
+  ## [View API Docs](https://collected.press/docs/api)
+
 ## Examples
 
 ### Rendered
