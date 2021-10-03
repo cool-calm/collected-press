@@ -6,6 +6,20 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 
 ----
 
+## Use Cases
+
+- Zero-build websites. As soon as you push changes to GitHub, it’s available to be served. No CMS, no dependencies to keep up to date.
+- Great for documentation websites. In fact, our own [API docs](https://collected.press/docs/api) use it.
+- Create a home page for your open source project — just load the Markdown alongside the code in your repo.
+
+## Principles
+
+- Service is stateless. You pass in exactly what parameters you need: the GitHub repo, SHA, and path to the file you want to render.
+- Just uses HTTP. Takes advantage of caching heads and other HTTP behaviour.
+- Can be called from anywhere. Backends, frontends, JavaScript, Swift, Rust, C#, Golang.
+- Runs on the edge, has low latency for end users which provides a great user experience.
+- Responses (will soon) be heavily cached like a CDN.
+
 ## Examples
 
 ### Rendered
@@ -29,14 +43,9 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 - React’s latest SHA: https://collected.press/1/github/facebook/react/refs/HEAD
 - React’s tags: https://collected.press/1/github/facebook/react/refs/tags
 
-## Principles
+## Tech Stack
 
-- Service is stateless. You pass in exactly what parameters you need.
-- Can be called from anywhere. Backends, frontends, JavaScript, Swift, Rust, C#, Golang.
-- Runs on the edge, has low latency for end users which provides a great user experience.
-- Responses can be heavily cached like a CDN.
-
-## Use Cases
-
-- Allows zero-build websites. Just proxy HTTP, passing the repo, sha, and file path you want. As soon as you push changes to GitHub, it’s available to be served.
-- Great for documentation websites. In fact, our own [API docs](https://collected.press/docs/api) use it.
+- Runs on [Cloudflare Workers](https://developers.cloudflare.com/workers/).
+- Fetches data from [GitHub](https://github.com/) and [jsDelivr](https://www.jsdelivr.com/?docs=gh).
+- Uses [`markdown-it`](https://github.com/markdown-it/markdown-it) for Markdown parsing and rendering.
+- Uses [`yieldparser`](https://github.com/RoyalIcing/yieldparser) for routing.
