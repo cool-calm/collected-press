@@ -246,8 +246,9 @@ function renderStyledHTML(...contentHTML) {
     '<link href="https://unpkg.com/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
     '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
     `<style>
+    :root { --_color_: #0060F2; }
     body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
-    a { color: #0060F2; }
+    a { color: var(--_color_); }
     a:hover { text-decoration: underline; }
     p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: 1rem; }
     h1 { font-size: 2em; font-weight: 600; }
@@ -264,7 +265,8 @@ function renderStyledHTML(...contentHTML) {
     nav li:not(:first-child) a { border-left: none; }
     nav a:hover { background: #e9e9e9; border-color: #ddd; }
     form { padding: 1rem; }
-    form button { padding: 0.25rem 0.5rem; background-color: #222; color: white; border-radius: 999px; }
+    form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
+    form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
     </style>`,
     ...contentHTML,
   ].join('\n')
