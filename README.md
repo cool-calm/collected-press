@@ -1,6 +1,6 @@
 # Collected Press
 
-Render Markdown from any GitHub repo or gist. Live!
+Render Markdown from the latest files in any public GitHub repo or gist.
 
 ## [View API Docs](https://collected.press/docs/api)
 
