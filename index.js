@@ -246,6 +246,7 @@ function renderStyledHTML(...contentHTML) {
     // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
     '<link href="https://unpkg.com/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
     '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
+    '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
     `<style>
     :root { --_color_: #0060F2; }
     body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
