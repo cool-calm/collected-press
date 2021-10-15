@@ -4,6 +4,7 @@ import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
 import mimeDB from 'mime-db'
+import { listViews, recordView } from './src/analytics'
 // import { sha } from './sha';
 
 const Status = {
@@ -747,6 +748,16 @@ function* GetS3File() {
   }
 }
 
+function* ViewAnalytics() {
+  yield '/analytics'
+  yield mustEnd
+
+  return async () => {
+    const views = await listViews();
+    return resJSON(views);
+  }
+}
+
 const routes = [
   GetHealth,
   GetHome,
@@ -762,6 +773,7 @@ const routes = [
   GetGitHubRepoTagRefs,
   GetGitHubRepoListFiles,
   GetS3File,
+  ViewAnalytics
 ]
 
 function* Router() {
@@ -784,6 +796,12 @@ async function handleRequest(request, event) {
   const route = parse(url.pathname, Router())
 
   if (route.success) {
+    if (url.pathname !== '/analytics') {
+      event.waitUntil(recordView(url.pathname).then(result => {
+        console.log("analytics", result);
+      }));
+    }
+
     return route.result(url).catch(error => {
       if (error instanceof Response) {
         return error
