@@ -32,7 +32,7 @@ const HeaderPresets = {
   ContentSecurityPolicy: {
     ExternalImagesAndMedia: [
       'Content-Security-Policy',
-      "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self'",
+      "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self' https://cdn.usefathom.com",
     ],
   },
 }
