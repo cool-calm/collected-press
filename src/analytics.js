@@ -17,16 +17,23 @@ async function postUpstash(command) {
 const VIEW_KEY = 'viewed:'
 
 /**
- * 
- * @param {string} path 
- * @returns 
+ *
+ * @param {string} path
+ * @returns
  */
 export async function recordView(path) {
   return postUpstash(['ZINCRBY', VIEW_KEY, -1, path])
 }
 
 export async function listViews(limit = 100) {
-  return postUpstash(['ZRANGE', VIEW_KEY, 0, limit, 'WITHSCORES']).then(
-    data => data.result,
+  return postUpstash(['ZRANGE', VIEW_KEY, 0, limit, 'WITHSCORES']).then(data =>
+    data.result.map((value, index, views) => {
+      const isKey = index % 2 === 0
+      if (isKey) {
+          return value;
+      } else {
+          return -1 * parseInt(value);
+      }
+    }),
   )
 }
