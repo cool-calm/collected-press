@@ -14,6 +14,8 @@ async function postUpstash(command) {
   }).then(res => res.json())
 }
 
+// Using sorted set technique from: https://redis.com/ebook/part-1-getting-started/chapter-2-anatomy-of-a-redis-web-application/2-5-web-page-analytics/
+
 const VIEW_KEY = 'viewed:'
 
 /**
