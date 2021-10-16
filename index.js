@@ -58,7 +58,7 @@ function resPlainText(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
   return new Response(html, { status, headers })
 }
-function resRedirect(status = Status.found, location, headers = new Headers()) {
+function resRedirect(status = Status.seeOther, location, headers = new Headers()) {
   headers.set('location', location.toString())
   return new Response(undefined, { status, headers })
 }
@@ -749,13 +749,22 @@ function* GetS3File() {
   }
 }
 
-function* ViewAnalytics() {
+function* GetAnalytics() {
   yield '/analytics'
   yield mustEnd
 
   return async () => {
     const views = await listViews();
     return resJSON(views);
+  }
+}
+
+function* GetFavIcon() {
+  yield '/favicon.ico'
+  yield mustEnd
+
+  return async () => {
+    return resRedirect(Status.seeOther, 'https://poster.littleeagle.workers.dev/1/poster?primary=+');
   }
 }
 
@@ -774,7 +783,8 @@ const routes = [
   GetGitHubRepoTagRefs,
   GetGitHubRepoListFiles,
   GetS3File,
-  ViewAnalytics
+  GetAnalytics,
+  GetFavIcon
 ]
 
 function* Router() {
