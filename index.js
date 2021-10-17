@@ -4,6 +4,7 @@ import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
 import mimeDB from 'mime-db'
+import { pair, into } from './src/data'
 import { listViews, recordView } from './src/analytics'
 // import { sha } from './sha';
 
@@ -28,6 +29,20 @@ const Status = {
   tooManyRequests: 429,
 }
 
+const secureHTMLHeaders = Object.freeze([
+  pair('strict-transport-security', 'max-age=63072000'),
+  pair('x-content-type-options', 'nosniff'),
+  pair('x-frame-options', 'DENY'),
+  /* pair('x-xss-protection', '1; mode=block'), */
+]);
+
+const contentSecurityPolicyHeaders = Object.freeze([
+  pair(
+    'content-security-policy',
+    "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self' https://cdn.usefathom.com"
+  ),
+])
+
 const HeaderPresets = {
   ContentSecurityPolicy: {
     ExternalImagesAndMedia: [
@@ -50,8 +65,13 @@ function resJSON(json, status = Status.success, headers = new Headers()) {
   return new Response(JSON.stringify(json), { status, headers })
 }
 function resHTML(html, status = Status.success, headers = new Headers()) {
+  // assignEntries(headers, pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)
+  // assigning(pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)(headers)
+  // assign(headers, [pair('content-type', 'text/html;charset=utf-8')], secureHTMLHeaders, contentSecurityPolicyHeaders)
+
   headers.set('content-type', 'text/html;charset=utf-8')
-  headers.set(...HeaderPresets.ContentSecurityPolicy.ExternalImagesAndMedia)
+  into(headers, secureHTMLHeaders)
+  into(headers, contentSecurityPolicyHeaders)
   return new Response(html, { status, headers })
 }
 function resPlainText(html, status = Status.success, headers = new Headers()) {
@@ -384,6 +404,7 @@ function mimeTypeForPath(path) {
         }
       }).iterate(Object.entries(mimeDB)),
     )
+    .set('ts', 'application/typescript') // Same as Deno
   }
 
   const [extension] = path.split('.').reverse()
@@ -399,6 +420,7 @@ function pathIsText(path) {
           mimeType.startsWith('text/') ||
           mimeType === 'application/json' ||
           mimeType === 'application/javascript' ||
+          mimeType === 'application/typescript' ||
           mimeType.endsWith('+json') ||
           mimeType.endsWith('+xml') ||
           'charset' in info
@@ -407,7 +429,7 @@ function pathIsText(path) {
             yield* info.extensions
           }
       }).iterate(Object.entries(mimeDB)),
-    )
+    ).add('ts')
   }
 
   const [extension] = path.split('.').reverse()
@@ -763,9 +785,7 @@ function* GetFavIcon() {
   yield '/favicon.ico'
   yield mustEnd
 
-  return async () => {
-    return resRedirect('https://poster.littleeagle.workers.dev/1/poster?primary=+');
-  }
+  return () => resRedirect('https://poster.littleeagle.workers.dev/1/poster?primary=+');
 }
 
 const routes = [
