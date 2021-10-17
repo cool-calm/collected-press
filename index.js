@@ -58,7 +58,7 @@ function resPlainText(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
   return new Response(html, { status, headers })
 }
-function resRedirect(status = Status.seeOther, location, headers = new Headers()) {
+function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
   headers.set('location', location.toString())
   return new Response(undefined, { status, headers })
 }
@@ -764,7 +764,7 @@ function* GetFavIcon() {
   yield mustEnd
 
   return async () => {
-    return resRedirect(Status.seeOther, 'https://poster.littleeagle.workers.dev/1/poster?primary=+');
+    return resRedirect('https://poster.littleeagle.workers.dev/1/poster?primary=+');
   }
 }
 
