@@ -273,6 +273,7 @@ function renderStyledHTML(...contentHTML) {
     a { color: var(--_color_); }
     a:hover { text-decoration: underline; }
     p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: 1rem; }
+    pre { white-space: pre-wrap; white-space: break-spaces; }
     h1 { font-size: 2em; font-weight: 600; }
     h2 { font-size: 1.5em; font-weight: 600; }
     h3 { font-size: 1.25em; font-weight: 600; }
@@ -310,8 +311,7 @@ function renderMarkdown(markdown, path, mimeType, options) {
   let html = md.render(markdown)
   
   if (options && options.has('theme')) {
-    html = `<article>${html}</article>`
-    html = renderStyledHTML(html)
+    html = renderStyledHTML('<article>', html, '</article>')
   }
 
   return html
@@ -555,7 +555,9 @@ function* GetViewFile() {
         ...(ownerName !== undefined
           ? renderGitHubBreadcrumbs(ownerName, repoName, sha, path)
           : []),
+        '<article>',
         renderMarkdown(sourceText, path, mimeTypeForPath(path), new Map()),
+        '</article>',
       )
       return resHTML(html)
     } else if (fetchJSON) {
