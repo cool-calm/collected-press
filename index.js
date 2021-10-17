@@ -41,16 +41,7 @@ const contentSecurityPolicyHeaders = Object.freeze([
     'content-security-policy',
     "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self' https://cdn.usefathom.com"
   ),
-])
-
-const HeaderPresets = {
-  ContentSecurityPolicy: {
-    ExternalImagesAndMedia: [
-      'Content-Security-Policy',
-      "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self' https://cdn.usefathom.com",
-    ],
-  },
-}
+]);
 
 const md = markdownIt({ html: true, linkify: true })
   .use(highlightjsPlugin)
