@@ -538,9 +538,18 @@ function* GetViewFile() {
     mimeType,
   } = yield [RawGitHubRepoFile, RawGitHubRepoList, RawGitHubGistFile]
 
-  return async ({ searchParams }) => {
+  return async ({ searchParams }, { headers }) => {
     if (fetchText) {
       const sourceText = await fetchText()
+
+      // When loaded by <img src="…">
+      if ((headers.get('Accept') || '').includes('image/')) {
+        const mimeType = mimeTypeForPath(path)
+        if (mimeType.startsWith('image/')) {
+          return new Response(sourceText, { headers: new Headers([pair('Content-Type', mimeType)]) })
+        }
+      }
+
       // const params = new Map([['theme', '']])
       const html = renderStyledHTML(
         ...(ownerName !== undefined
@@ -826,7 +835,7 @@ async function handleRequest(request, event) {
       }));
     }
 
-    return route.result(url).catch(error => {
+    return route.result(url, request).catch(error => {
       if (error instanceof Response) {
         return error
       } else {
