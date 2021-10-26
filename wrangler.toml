@@ -1,5 +1,5 @@
 name = "press"
-compatibility_date = "2021-09-27"
+compatibility_date = "2021-10-04"
 type = "webpack"
 
 account_id = ""
