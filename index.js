@@ -259,11 +259,11 @@ function renderStyledHTML(...contentHTML) {
     '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
     '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
     `<style>
-    :root { --_color_: #0060F2; }
+    :root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
     body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
     a { color: var(--_color_); }
     a:hover { text-decoration: underline; }
-    p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: 1rem; }
+    p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: var(--block-margin-bottom); }
     pre { white-space: pre-wrap; white-space: break-spaces; }
     h1 { font-size: 2em; font-weight: 600; }
     h2 { font-size: 1.5em; font-weight: 600; }
@@ -273,6 +273,10 @@ function renderStyledHTML(...contentHTML) {
     h6 { font-size: .85em; font-weight: 600; }
     img { display: inline-block; }
     article ul { list-style: inside; }
+    article ol { list-style: decimal inside; }
+    article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
+    article pre { font-size: 90%; }
+    article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
     nav ul { display: flex; flex-wrap: wrap; }
     nav a { display: inline-block; padding: 0.5em; background: #f5f5f5; }
     nav a { border: 1px solid #e5e5e5; }
