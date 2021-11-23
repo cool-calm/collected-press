@@ -65,9 +65,9 @@ function resHTML(html, status = Status.success, headers = new Headers()) {
   into(headers, contentSecurityPolicyHeaders)
   return new Response(html, { status, headers })
 }
-function resPlainText(html, status = Status.success, headers = new Headers()) {
+function resPlainText(text, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
-  return new Response(html, { status, headers })
+  return new Response(text, { status, headers })
 }
 function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
   headers.set('location', location.toString())
