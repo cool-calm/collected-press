@@ -67,6 +67,9 @@ GET_github_gist:
 GET_github_refs:
 	httpstat "https://github.com/RoyalIcing/yieldmachine.git/info/refs?service=git-upload-pack"
 
+GET_gist_refs:
+	httpstat "https://gist.github.com/d9d2ca7ed6f056632696709a2ae3c413.git/info/refs?service=git-upload-pack"
+
 GET_yieldmachine_refs:
 	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/refs
 	@curl -w $(CURL_TRAIL) -i $(PRODUCTION_URL)/1/github/RoyalIcing/yieldmachine/refs/heads/master
