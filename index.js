@@ -3,7 +3,7 @@ import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
-import mimeDB from 'mime-db'
+import { lookup as lookupMime } from 'mrmime'
 import { pair, into } from './src/data'
 import { listViews, recordView } from './src/analytics'
 // import { sha } from './sha';
@@ -232,7 +232,7 @@ async function fetchGitHubGistFile(ownerName, gistID, path = '') {
  * @param {string} sha
  * @returns {Promise<string>}
  */
- async function fetchPublicS3Object(
+async function fetchPublicS3Object(
   bucketName,
   region,
   mimeType,
@@ -294,6 +294,7 @@ function renderStyledHTML(...contentHTML) {
  *
  * @param {string} markdown
  * @param {string} path
+ * @param {string} mimeType
  * @param {undefined | URLSearchParams | Map} options
  * @returns {string}
  */
@@ -304,12 +305,23 @@ function renderMarkdown(markdown, path, mimeType, options) {
   }
 
   let html = md.render(markdown)
-  
+
   if (options && options.has('theme')) {
     html = renderStyledHTML('<article>', html, '</article>')
   }
 
   return html
+}
+
+/**
+ *
+ * @param {string} markdown
+ * @param {string} type
+ * @returns {string}
+ */
+function renderCodeAsMarkdown(markdown, type) {
+  markdown = [`~~~~~~~~~~~~${type}`, markdown, '~~~~~~~~~~~~'].join('\n')
+  return md.render(markdown)
 }
 
 function* GetHealth() {
@@ -387,48 +399,28 @@ function* GetDoc() {
 const githubOwnerNameRegex = /^[-_a-z\d]+/i
 const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
-let extensionToMimeType = null
 function mimeTypeForPath(path) {
-  if (!extensionToMimeType) {
-    extensionToMimeType = new Map(
-      bitsy(function*([mimeType, info]) {
-        if (!Array.isArray(info.extensions)) return
-
-        for (const extension of info.extensions) {
-          yield [extension, mimeType]
-        }
-      }).iterate(Object.entries(mimeDB)),
-    )
-    .set('ts', 'application/typescript') // Same as Deno
+  if (path.endsWith('.ts')) {
+    return 'application/typescript';
   }
 
-  const [extension] = path.split('.').reverse()
-  return extensionToMimeType.get(extension)
+  return lookupMime(path);
 }
 
-let textExtensions = null
 function pathIsText(path) {
-  if (!textExtensions) {
-    textExtensions = new Set(
-      bitsy(function*([mimeType, info]) {
-        if (
-          mimeType.startsWith('text/') ||
-          mimeType === 'application/json' ||
-          mimeType === 'application/javascript' ||
-          mimeType === 'application/typescript' ||
-          mimeType.endsWith('+json') ||
-          mimeType.endsWith('+xml') ||
-          'charset' in info
-        )
-          if (info.extensions) {
-            yield* info.extensions
-          }
-      }).iterate(Object.entries(mimeDB)),
-    ).add('ts')
+  const mimeType = mimeTypeForPath(path);
+  if (mimeType == null) {
+    return false;
   }
 
-  const [extension] = path.split('.').reverse()
-  return textExtensions.has(extension)
+  return (
+    mimeType.startsWith('text/') ||
+    mimeType === 'application/json' ||
+    mimeType === 'application/javascript' ||
+    mimeType === 'application/typescript' ||
+    mimeType.endsWith('+json') ||
+    mimeType.endsWith('+xml')
+  )
 }
 
 function* RawGitHubRepoFile() {
@@ -569,21 +561,19 @@ function* GetViewFile() {
         if (searchParams.has('images') && filePath.endsWith('.svg')) {
           // const imageURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`;
           const imageURL = `https://cdn.jsdelivr.net/gh/${filePath}`;
-          return `<li><a href="/view/1/github/${filePath}"><img width="20" loading=lazy src="${imageURL}"> ${
-            filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
-          }</a>`
+          return `<li><a href="/view/1/github/${filePath}"><img width="20" loading=lazy src="${imageURL}"> ${filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
+            }</a>`
         }
 
-        return `<li><a href="/view/1/github/${filePath}">${
-          filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
-        }</a>`
+        return `<li><a href="/view/1/github/${filePath}">${filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath
+          }</a>`
       }
       const filePaths = await fetchJSON()
       const prefix = `${ownerName}/${repoName}@${sha}/`
       const html = renderStyledHTML(
         ...renderGitHubBreadcrumbs(ownerName, repoName, sha, path),
         `<form method=GET>
-        <div><input type=checkbox name=images id=images-checkbox ${searchParams.has('images') ? 'checked': ''}> <label for=images-checkbox>Images</label></div>
+        <div><input type=checkbox name=images id=images-checkbox ${searchParams.has('images') ? 'checked' : ''}> <label for=images-checkbox>Images</label></div>
         <button type=submit>Update</button>
         </form>`,
         '<article><ul>',
@@ -613,7 +603,7 @@ function* GetViewRepo() {
     const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
     const headRef = findHEADInRefs(refsGenerator())
     const tagRefs = Array.from(
-      bitsy(function*(ref) {
+      bitsy(function* (ref) {
         if (ref.ref.startsWith(`refs/tags/`) && !ref.ref.endsWith('^{}')) {
           yield ref
         }
@@ -635,6 +625,61 @@ function* GetViewRepo() {
       '</article>',
     )
     return resHTML(html)
+  }
+}
+
+function* GetRepoArticle() {
+  yield '/github/'
+  const [ownerName] = yield githubOwnerNameRegex
+  yield '/'
+  const [repoName] = yield githubRepoNameRegex
+  // yield '@'
+  // const [sha] = yield /^[a-z\d]{40}/i
+  yield '/'
+  const [path] = yield /^.*[^\/]$/
+
+  return async ({ searchParams }) => {
+    const refs = await fetchGitHubRepoRefs(ownerName, repoName)
+    const headRef = findHEADInRefs(refs())
+    const [sourceText, status] = await fetchGitHubRepoFile(ownerName, repoName, headRef.sha, `${path}.md`, res => res.text())
+      .then(sourceText => [sourceText, Status.success])
+      .catch(() => [`# Page not found: ${path}`, Status.notFound])
+
+    const contentHTML = renderMarkdown(sourceText, 'file.md', 'text/markdown', undefined)
+    return resHTML(renderStyledHTML('<article>', contentHTML, '</article>'), status);
+  }
+}
+
+function* GetRepoArticleDirectory() {
+  yield '/github/'
+  const [ownerName] = yield githubOwnerNameRegex
+  yield '/'
+  const [repoName] = yield githubRepoNameRegex
+  // yield '@'
+  // const [sha] = yield /^[a-z\d]{40}/i
+  yield '/'
+  const [path] = yield /^.*[\/]$/
+
+  return async ({ searchParams }) => {
+    const refs = await fetchGitHubRepoRefs(ownerName, repoName)
+    const headRef = findHEADInRefs(refs())
+    const [files, status] = await listGitHubRepoFiles(ownerName, repoName, headRef.sha, path)
+      .then(files => [files.map(name => parse(name, function* () {
+        const [ownerName] = yield githubOwnerNameRegex
+        yield '/'
+        const [repoName] = yield githubRepoNameRegex
+        yield '@'
+        const [sha] = yield /^[a-z\d]{40}/i
+        yield '/'
+        yield path;
+        const [filename] = yield /^.*[.]md$/
+        return filename;
+      }.call(null))).filter(r => r.success).map(r => r.result), Status.success])
+      .catch(() => [[], Status.notFound])
+
+    return resJSON(files, status);
+    // const contentHTML = renderMarkdown(sourceText, 'file.md', 'text/markdown', undefined)
+    // return resHTML(renderStyledHTML('<article>', contentHTML, '</article>'), status);
   }
 }
 
@@ -700,7 +745,7 @@ function* GetGitHubRepoTagRefs() {
   return async ({ searchParams }) => {
     const jsonGenerator = await fetchJSONIterable()
     const json = Array.from(
-      bitsy(function*(line) {
+      bitsy(function* (line) {
         if (line.ref.startsWith(`refs/tags/`)) {
           yield line
         }
@@ -756,7 +801,7 @@ function* GetS3File() {
   const [region] = yield /^[-_a-z\d]+/i
   yield '/'
   const [bucketName] = yield /^[-_a-z\d]+/i
-  yield '/'
+  yield '/sha256/'
   const mediaTypePrimary = yield ['text', 'image', 'application']
   yield '/'
   const [mediaTypeSecondary] = yield /^[-_a-z\d]+/i
@@ -772,8 +817,33 @@ function* GetS3File() {
       const html = renderMarkdown(sourceText, '', mimeType, searchParams)
       return resHTML(html)
     } else {
-      return new Response(sourceText, { headers: new Headers({ 'content-type': mimeType })})
+      return new Response(sourceText, { headers: new Headers({ 'content-type': mimeType }) })
     }
+  }
+}
+
+// https://example.com/1/s3/highlight/us-west-2/collected-workspaces/text/markdown/32b4f11a5fe3fd274ce2f0338d5d9af4e30c7e226f4923f510d43410119c0855
+function* HighlightS3File() {
+  yield '/1/s3/highlight/'
+  const [region] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const [bucketName] = yield /^[-_a-z\d]+/i
+  yield '/sha256/'
+  const mediaTypePrimary = yield ['text', 'application']
+  yield '/'
+  const [mediaTypeSecondary] = yield /^[-_a-z\d]+/i
+  yield '/'
+  const [sha] = yield /^[a-z\d]{64}/i
+  yield mustEnd
+
+  return async ({ searchParams }) => {
+    const mimeType = `${mediaTypePrimary}/${mediaTypeSecondary}`
+    let sourceText = await fetchPublicS3Object(bucketName, region, mimeType, sha)
+    let html = renderCodeAsMarkdown(sourceText, mediaTypeSecondary)
+    if (searchParams.get('theme') === '1') {
+      html = renderStyledHTML(html)
+    }
+    return resHTML(html)
   }
 }
 
@@ -803,12 +873,15 @@ const routes = [
   GetGitHubRepoFile,
   GetViewFile,
   GetViewRepo,
+  GetRepoArticle,
+  GetRepoArticleDirectory,
   GetGitHubRepoRefs,
   GetGitHubRepoHEADRef,
   GetGitHubRepoHeadsRef,
   GetGitHubRepoTagRefs,
   GetGitHubRepoListFiles,
   GetS3File,
+  HighlightS3File,
   GetAnalytics,
   GetFavIcon
 ]

@@ -5,12 +5,14 @@
   "description": "A template for kick starting a Cloudflare Workers project",
   "main": "index.js",
   "scripts": {
+    "dev": "miniflare",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write '**/*.{js,css,json,md}'"
   },
   "author": "Patrick Smith <pgwsmith@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "miniflare": "^2.3.0",
     "prettier": "^1.18.2"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
     "markdown-it-highlightjs": "^3.5.0",
     "markdown-it-task-lists": "^2.1.1",
     "mime-db": "^1.50.0",
+    "mrmime": "^1.0.0",
     "yieldparser": "^0.2.0"
   }
 }
