@@ -1,6 +1,7 @@
 import markdownIt from 'markdown-it'
 import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
+import frontMatterPlugin from 'markdown-it-front-matter'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
 import { lookup as lookupMime } from 'mrmime'
@@ -46,6 +47,7 @@ const contentSecurityPolicyHeaders = Object.freeze([
 const md = markdownIt({ html: true, linkify: true })
   .use(highlightjsPlugin)
   .use(taskListsPlugin)
+  .use(frontMatterPlugin, (frontMatter) => {})
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request, event))
@@ -191,7 +193,7 @@ async function fetchGitHubRepoRefs(ownerName, repoName) {
 function findHEADInRefs(refsIterable) {
   for (const line of refsIterable) {
     if (line.HEADRef) {
-      return { sha: line.oid, HEADRef: line.HEADRef }
+      return { sha: line.oid, HEADRef: line.HEADRef, branch: line.HEADRef.split('/').at(-1) }
     }
     break
   }
@@ -285,9 +287,10 @@ function renderStyledHTML(...contentHTML) {
     form { padding: 1rem; }
     form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
     form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
+    footer[role=contentinfo] { font-size: 0.75rem; }
     </style>`,
     ...contentHTML,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 /**
@@ -504,6 +507,22 @@ function* RawGitHubGistFile() {
   return { fetchText, path }
 }
 
+function* renderBreadcrumbs(prefix, path) {
+  yield `<nav><ul>`
+  // yield `<li><a href="${prefix}"><code>${'/'}</code></a>`
+  yield* path
+    .replace(/\//g, () => '/\u0000')
+    .split('\u0000')
+    .filter(s => s.length !== 0)
+    .map(
+      (component, index, components) =>
+        `<li><a href="${prefix}/${components
+          .slice(0, index + 1)
+          .join('')}"><code>${component}</code></a>`,
+    )
+  yield '</ul></nav>'
+}
+
 function* renderGitHubBreadcrumbs(ownerName, repoName, sha, path) {
   yield `<nav><ul>`
   yield `<li><a href="/view/1/github/${ownerName}/${repoName}@${sha}/"><code>${'/'}</code></a>`
@@ -592,8 +611,8 @@ function* GetViewFile() {
   }
 }
 
-function* GetViewRepo() {
-  yield '/github/'
+function* GetViewRepoAbout() {
+  yield '/github/about/'
   const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [repoName] = yield githubRepoNameRegex
@@ -645,8 +664,20 @@ function* GetRepoArticle() {
       .then(sourceText => [sourceText, Status.success])
       .catch(() => [`# Page not found: ${path}`, Status.notFound])
 
-    const contentHTML = renderMarkdown(sourceText, 'file.md', 'text/markdown', undefined)
-    return resHTML(renderStyledHTML('<article>', contentHTML, '</article>'), status);
+    const homePath = `/github/${ownerName}/${repoName}`
+    const parentPath = path.replace(/(.+[\/])?([^\/]*)/, '$1')
+
+    const html = renderStyledHTML(
+      md.render(`# [${repoName}](${homePath})`),
+      ...renderBreadcrumbs(homePath, parentPath),
+      '<article>',
+      md.render(sourceText),
+      '</article>',
+      `<footer role="contentinfo">`,
+      md.render(`---- \n[Edit on GitHub](https://github.dev/${ownerName}/${repoName}/blob/${headRef.branch}/${path}.md)`),
+      `</footer>`,
+    )
+    return resHTML(html, status);
   }
 }
 
@@ -657,27 +688,49 @@ function* GetRepoArticleDirectory() {
   const [repoName] = yield githubRepoNameRegex
   // yield '@'
   // const [sha] = yield /^[a-z\d]{40}/i
-  yield '/'
-  const [path] = yield /^.*[\/]$/
+  // yield '/'
+  const [, path] = yield [/^[\/](.+[\/])$/, /^([\/])$/, /^()$/]
 
   return async ({ searchParams }) => {
+    if (path === '/') {
+      return resRedirect(`/github/${ownerName}/${repoName}`)
+    }
+
     const refs = await fetchGitHubRepoRefs(ownerName, repoName)
     const headRef = findHEADInRefs(refs())
     const [files, status] = await listGitHubRepoFiles(ownerName, repoName, headRef.sha, path)
       .then(files => [files.map(name => parse(name, function* () {
-        const [ownerName] = yield githubOwnerNameRegex
+        yield ownerName
         yield '/'
-        const [repoName] = yield githubRepoNameRegex
+        yield repoName
         yield '@'
-        const [sha] = yield /^[a-z\d]{40}/i
+        yield /^[a-z\d]{40}/i
         yield '/'
         yield path;
-        const [filename] = yield /^.*[.]md$/
+        const [, filename] = yield [/^(.*)[.]md$/, /^(.*[\/])$/]
         return filename;
       }.call(null))).filter(r => r.success).map(r => r.result), Status.success])
       .catch(() => [[], Status.notFound])
 
-    return resJSON(files, status);
+    const homePath = `/github/${ownerName}/${repoName}`
+    const dirPath = `${homePath}/${path}`
+    const sourceLines = files.map(name => `- [${name}](${dirPath}${name})`)
+    // if (path !== '') {
+    //   const last = path.split('/').at(-2)
+    //   sourceLines.splice(0, 0, `## [${last}](${dirPath})`)
+    // }
+    const sourceText = sourceLines.join("\n")
+    const contentHTML =  md.render(sourceText)
+    const html = renderStyledHTML(
+      md.render(`# [${repoName}](${homePath})`),
+      ...renderBreadcrumbs(homePath, path),
+      '<article>',
+      contentHTML,
+      '</article>'
+    )
+    return resHTML(html, status);
+    // return resJSON(files, status);
+
     // const contentHTML = renderMarkdown(sourceText, 'file.md', 'text/markdown', undefined)
     // return resHTML(renderStyledHTML('<article>', contentHTML, '</article>'), status);
   }
@@ -871,10 +924,10 @@ const routes = [
   GetGitHubGistFile,
   GetGitHubGist,
   GetGitHubRepoFile,
+  GetViewRepoAbout,
   GetViewFile,
-  GetViewRepo,
-  GetRepoArticle,
   GetRepoArticleDirectory,
+  GetRepoArticle,
   GetGitHubRepoRefs,
   GetGitHubRepoHEADRef,
   GetGitHubRepoHeadsRef,
