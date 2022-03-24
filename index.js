@@ -287,7 +287,7 @@ function renderStyledHTML(...contentHTML) {
     form { padding: 1rem; }
     form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
     form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
-    footer[role=contentinfo] { font-size: 0.75rem; }
+    footer[role=contentinfo] { margin-top: 3rem; padding-top: 1rem; border-top: 0.25px solid currentColor; font-size: 0.75rem; }
     </style>`,
     ...contentHTML,
   ].filter(Boolean).join('\n')
@@ -674,7 +674,7 @@ function* GetRepoArticle() {
       md.render(sourceText),
       '</article>',
       `<footer role="contentinfo">`,
-      md.render(`---- \n[Edit on GitHub](https://github.dev/${ownerName}/${repoName}/blob/${headRef.branch}/${path}.md)`),
+      md.render(`[Edit on GitHub](https://github.dev/${ownerName}/${repoName}/blob/${headRef.branch}/${path}.md)`),
       `</footer>`,
     )
     return resHTML(html, status);
@@ -720,13 +720,15 @@ function* GetRepoArticleDirectory() {
     //   sourceLines.splice(0, 0, `## [${last}](${dirPath})`)
     // }
     const sourceText = sourceLines.join("\n")
-    const contentHTML =  md.render(sourceText)
     const html = renderStyledHTML(
       md.render(`# [${repoName}](${homePath})`),
       ...renderBreadcrumbs(homePath, path),
       '<article>',
-      contentHTML,
-      '</article>'
+      md.render(sourceText),
+      '</article>',
+      `<footer role="contentinfo">`,
+      md.render(`[Edit on GitHub](https://github.dev/${ownerName}/${repoName}/blob/${headRef.branch}/${path})`),
+      `</footer>`,
     )
     return resHTML(html, status);
     // return resJSON(files, status);
