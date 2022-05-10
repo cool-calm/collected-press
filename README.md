@@ -25,8 +25,8 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 ### Rendered
 
 - React’s Changelog: https://collected.press/github/facebook/react/CHANGELOG.md
-- Night Owl CSS: https://collected.press/github/highlightjs/highlight.js@e076acce3af97f2f7d89651a2661340df8fabc50/src/styles/night-owl.css
-- Really Long Readme: https://collected.press/github/avelino/awesome-go@fa471593c56bf802ee77c81c419a3b45e4de9014/README.md
+- Night Owl CSS: https://collected.press/github/highlightjs/highlight.js@4c1f2b7f9a13ba3263b140c11524bd934d3b93bf/src/styles/night-owl.css
+- Really Long Readme: https://collected.press/github/avelino/awesome-go@8d309904a16bf60d2f4b30ecf99b226554580cdd/README.md
 
 ### Raw HTML
 
