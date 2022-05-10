@@ -11,12 +11,14 @@ Fetches the HEAD and redirects to include its SHA.
 
 For example:
 
-- https://collected.press/github/evanw/esbuild
 - https://collected.press/github/vuejs/vue
+- https://collected.press/github/vuejs/vue/BACKERS.md
+- https://collected.press/github/apple/swift/docs/OwnershipManifesto.md
+- https://collected.press/github/facebook/react
+- https://collected.press/github/facebook/react/CHANGELOG.md
 - https://collected.press/github/tailwindlabs/tailwindcss
 - https://collected.press/github/graphql/graphql-js
-- https://collected.press/github/facebook/react
-- https://collected.press/github/markdown-it/markdown-it
+- https://collected.press/github/evanw/esbuild
 
 ----
 
