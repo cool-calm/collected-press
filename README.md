@@ -31,14 +31,14 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 - TailwindCSS: https://collected.press/github/tailwindlabs/tailwindcss
     - Tailwind’s Colors: https://collected.press/github/tailwindlabs/tailwindcss@b49dc7cafafd9b5d1070ef512a6a1a403d74627c/src/public/colors.js
 
-These routes are conveniently short, and redirect to the latest SHA.
+These routes are conveniently short, and redirect to the latest SHA. Markdown and source code files are rendered as styled HTML.
 
 ### Raw HTML
 
 - Repo Readme: https://collected.press/1/github/RoyalIcing/yieldmachine@4478530fc40c3bf1208f8ea477f455ad34da308d/readme.md
 - Gist: https://collected.press/1/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85
 
-These routes have the prefix `1`, and require a specific SHA.
+These routes have the prefix `1`, and require a specific SHA. Markdown files are rendered as HTML without styles or any `<head>`.
 
 ### Refs
 

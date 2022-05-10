@@ -669,7 +669,7 @@ function* GetRepoArticleDirectory() {
 }
 
 function* GetGitHubRepoFile() {
-  yield '/unstyled'
+  yield '/1'
   const { fetchText, path } = yield RawGitHubRepoFile
 
   return async ({ searchParams }) => {
