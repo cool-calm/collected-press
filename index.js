@@ -406,6 +406,9 @@ function mimeTypeForPath(path) {
   if (path.endsWith('.ts')) {
     return 'application/typescript';
   }
+  if (path.endsWith('.swift')) {
+    return 'text/swift';
+  }
 
   return lookupMime(path);
 }
