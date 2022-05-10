@@ -10,3 +10,4 @@ routes = ["collected.press/*"]
 [env.staging]
 name = "collected-press-staging"
 routes = ["staging.collected.press/*"]
+node_compat = true
