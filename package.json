@@ -20,9 +20,8 @@
     "markdown-it-front-matter": "^0.2.3",
     "markdown-it-highlightjs": "^3.5.0",
     "markdown-it-task-lists": "^2.1.1",
-    "mime-db": "^1.50.0",
     "mrmime": "^1.0.0",
     "wrangler": "^2.0.2",
-    "yieldparser": "^0.2.0"
+    "yieldparser": "^0.3.0"
   }
 }
