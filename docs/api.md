@@ -2,11 +2,27 @@
 
 We serve a read-only transformation of public GitHub repos. It is provided with no warranty.
 
+## View GitHub Repo
+
+- `/github/{owner}/{repo}`
+- `/github/{owner}/{repo}/{...path}`
+
+Fetches the HEAD and redirects to include its SHA.
+
+For example:
+
+- https://collected.press/github/evanw/esbuild
+- https://collected.press/github/vuejs/vue
+- https://collected.press/github/tailwindlabs/tailwindcss
+- https://collected.press/github/graphql/graphql-js
+- https://collected.press/github/facebook/react
+- https://collected.press/github/markdown-it/markdown-it
+
 ----
 
-## Render GitHub Repo File
+## Styled GitHub Repo File
 
-`/1/github/{owner}/{repo}@{sha}/{...path}`
+`/github/{owner}/{repo}@{sha}/{...path}`
 
 Renders a file within a GitHub repo.
 
@@ -16,7 +32,7 @@ If the file is Markdown, then it is rendered as HTML. Syntax highlighting is don
 
 ### Images (MIME type `image/*`)
 
-Images are presented on an HTML page, with links pointing to the corresponding [jsdelivr URL][jsdelivr-github].
+Images are presented within an HTML page, loading from their corresponding [jsdelivr URL][jsdelivr-github].
 
 ### Other file types
 
@@ -28,6 +44,21 @@ For example a `style.css` file will get transformed into:
 CONTENTS OF style.css
 ~~~~~~~~~~~~
 ```
+
+## GitHub Repo Directory
+
+- `/github/{owner}/{repo}@{sha}/`
+- `/github/{owner}/{repo}@{sha}/{...path}/`
+
+Renders a list of files fetched from [jsdelivr](jsdelivr-github).
+
+----
+
+## Unstyled GitHub Repo File
+
+`/1/github/{owner}/{repo}@{sha}/{...path}`
+
+Renders a file within a GitHub repo without a `<head>` or any styles. This makes it a good fit for being loaded by an edge worker, where you can prepend your own `<head>` and styles.
 
 ----
 
@@ -52,35 +83,18 @@ For example, here is the [result for facebook/react](https://collected.press/1/g
 
 ----
 
-## View GitHub Repo
-
-`/github/{owner}/{repo}`
-
-Lists the HEAD and branches for a provided GitHub repo.
-
-For example:
-
-- https://collected.press/github/evanw/esbuild
-- https://collected.press/github/vuejs/vue
-- https://collected.press/github/tailwindlabs/tailwindcss
-- https://collected.press/github/graphql/graphql-js
-- https://collected.press/github/facebook/react
-- https://collected.press/github/markdown-it/markdown-it
-
-----
-
 ## Home
 
 `/`
 
 Renders the latest version of the collected.press [readme](https://github.com/RoyalIcing/collected-press/blob/main/README.md).
 
-It uses the above functionality to do it:
+It does this by:
 
 1. It reads the HEAD ref’s SHA from the RoyalIcing/collected-press GitHub repo.
 1. It loads the Markdown for the README.md file at that SHA.
 1. It renders that Markdown to HTML.
-1. It also loads in CSS and a HTML `<head>`.
+1. It links to CSS inside a HTML `<head>` with the rendered Markdown inside a `<body>`.
 
 
 [jsdelivr-github]: https://www.jsdelivr.com/?docs=gh
