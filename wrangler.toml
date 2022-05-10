@@ -1,11 +1,11 @@
 name = "press"
+main = "index.js"
 compatibility_date = "2021-10-04"
-type = "webpack"
+node_compat = true
 
 account_id = ""
 workers_dev = true
 routes = ["collected.press/*"]
-zone_id = ""
 
 [env.staging]
 name = "collected-press-staging"
