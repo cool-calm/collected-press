@@ -1,3 +1,5 @@
+const hasUpstash = typeof UPSTASH_URL === 'string'
+
 /**
  *
  * @param {Array<string | number>} command
@@ -24,6 +26,9 @@ const VIEW_KEY = 'viewed:'
  * @returns
  */
 export async function recordView(path) {
+  if (!hasUpstash) {
+    return null;
+  }
   return postUpstash(['ZINCRBY', VIEW_KEY, -1, path])
 }
 
