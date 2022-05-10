@@ -7,9 +7,6 @@ account_id = ""
 workers_dev = true
 routes = ["collected.press/*"]
 
-[dev.vars]
-UPSTASH_URL = "https://example.org"
-
 [env.staging]
 name = "collected-press-staging"
 routes = ["staging.collected.press/*"]
