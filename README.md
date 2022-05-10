@@ -30,7 +30,7 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 
 ### Raw HTML
 
-- Gist: https://collected.press/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85
+- Gist: https://collected.press/1/github/gist/gaearon/e7d97cdf38a2907924ea12e4ebdf3c85
 - Repo Readme: https://collected.press/1/github/RoyalIcing/yieldmachine@4478530fc40c3bf1208f8ea477f455ad34da308d/readme.md
 
 ### Navigate Repos
