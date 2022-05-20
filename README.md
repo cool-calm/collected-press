@@ -20,6 +20,7 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 - Can be called from anywhere. Backends, frontends, JavaScript, Swift, Rust, C#, Golang.
 - Runs on the edge, has low latency for end users which provides a great user experience.
 - Responses (will soon) be heavily cached like a CDN.
+- Unique git tags or SHA must be used in URLs, as we can confidently cache those forever. Links like `https://collected.press/github/facebook/react` are redirected to a URL with the latest SHA like `https://collected.press/github/facebook/react@6e2f38f3a4d58f11bbe86ca6f938c27767366967/`. We do the equivalent of `git fetch` to get the `HEAD` SHA.
 
 ## Examples
 
