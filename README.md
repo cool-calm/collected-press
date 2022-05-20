@@ -2,7 +2,8 @@
 
 Render Markdown from the latest files in any public GitHub repo or gist.
 
-## [View API Docs](https://collected.press/docs/api)
+- [View API Docs](https://collected.press/docs/api)
+- [View Source on GitHub](https://github.com/ThatCollected/collected-press)
 
 ----
 
