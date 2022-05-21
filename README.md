@@ -53,3 +53,11 @@ These routes have the prefix `1`, and require a specific SHA. Markdown files are
 - Fetches data from [GitHub](https://github.com/) and [jsDelivr](https://www.jsdelivr.com/?docs=gh).
 - Uses [`markdown-it`](https://github.com/markdown-it/markdown-it) for Markdown parsing and rendering.
 - Uses [`yieldparser`](https://github.com/RoyalIcing/yieldparser) for routing.
+
+## Local Development
+
+```bash
+npm ci
+make dev
+# Open http://localhost:4321
+```
