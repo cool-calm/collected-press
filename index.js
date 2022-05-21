@@ -875,7 +875,6 @@ function* GetWebSocketAPI() {
     const webSocketPair = new WebSocketPair();
     const client = webSocketPair[0], server = webSocketPair[1];
 
-    server.accept();
     server.addEventListener('message', event => {
       try {
         const json = (typeof event.data === "string") ? event.data : (new TextDecoder()).decode(event.data)
@@ -886,6 +885,7 @@ function* GetWebSocketAPI() {
       }
       finally { }
     });
+    server.accept();
 
     return new Response(null, {
       status: 101,
