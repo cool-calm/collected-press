@@ -47,7 +47,7 @@ const contentSecurityPolicyHeaders = Object.freeze([
 const md = markdownIt({ html: true, linkify: true })
   .use(highlightjsPlugin)
   .use(taskListsPlugin)
-  .use(frontMatterPlugin, (frontMatter) => {})
+  .use(frontMatterPlugin, (frontMatter) => { })
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request, event))
@@ -850,7 +850,48 @@ function* GetFavIcon() {
   yield '/favicon.ico'
   yield mustEnd
 
+  // FIXME: this url doesn’t work
   return () => resRedirect('https://poster.littleeagle.workers.dev/1/poster?primary=+');
+}
+
+function jsonrpcReply(id, result) {
+  return JSON.stringify({
+    jsonrpc: "2.0",
+    id,
+    result
+  })
+}
+
+function* GetWebSocketAPI() {
+  yield '/1/ws'
+  yield mustEnd
+
+  return async (url, request) => {
+    const upgradeHeader = request.headers.get('Upgrade');
+    if (upgradeHeader !== 'websocket') {
+      return new Response('Expected Upgrade: websocket', { status: 426 });
+    }
+
+    const webSocketPair = new WebSocketPair();
+    const client = webSocketPair[0], server = webSocketPair[1];
+
+    server.accept();
+    server.addEventListener('message', event => {
+      try {
+        const json = (typeof event.data === "string") ? event.data : (new TextDecoder()).decode(event.data)
+        console.log(json)
+        const { id, method, params } = JSON.parse(json)
+        const html = renderMarkdown(params.source, 'a.md', params.mediaType)
+        server.send(jsonrpcReply(id, { html }))
+      }
+      finally { }
+    });
+
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    });
+  }
 }
 
 const routes = [
@@ -872,7 +913,8 @@ const routes = [
   GetS3File,
   HighlightS3File,
   GetAnalytics,
-  GetFavIcon
+  GetFavIcon,
+  GetWebSocketAPI
 ]
 
 function* Router() {
