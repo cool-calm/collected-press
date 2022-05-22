@@ -7,6 +7,7 @@ import { bitsy } from 'itsybitsy'
 import { lookup as lookupMime } from 'mrmime'
 import { pair, into } from './src/data'
 import { listViews, recordView } from './src/analytics'
+import { encodeHex } from './src/encodings'
 // import { sha } from './sha';
 
 const Status = {
@@ -45,7 +46,7 @@ const contentSecurityPolicyHeaders = Object.freeze([
 ]);
 
 const linkHeaders = Object.freeze([
-  pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
+  // pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
 ]);
 
 const md = markdownIt({ html: true, linkify: true })
@@ -74,6 +75,11 @@ function resHTML(html, status = Status.success, headers = new Headers()) {
 }
 function resPlainText(text, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
+  return new Response(text, { status, headers })
+}
+function resCSSCached(text, status = Status.success, headers = new Headers()) {
+  headers.set('content-type', 'text/css;charset=utf-8')
+  headers.set('cache-control', 'public, max-age=604800, s-maxage=43200')
   return new Response(text, { status, headers })
 }
 function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
@@ -255,14 +261,16 @@ async function fetchPublicS3Object(
   return transformRes(sourceRes)
 }
 
-const styledHTMLHeadElements = [
+const styledHTMLHeadElements = () => [
   `<!doctype html>`,
   `<html lang=en>`,
   `<meta charset=utf-8>`,
   `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
   // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
-  '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
-  '<link href="https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
+  `<link href="/assets/tailwindcssbase/${assetSHA256("tailwindcssbase")}.css" rel="stylesheet">`,
+  `<link href="/assets/night-owl/${assetSHA256("night-owl")}.css" rel="stylesheet">`,
+  // '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
+  // '<link href="https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
   '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
   `<style>
 :root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
@@ -297,7 +305,7 @@ footer[role=contentinfo] { margin-top: 3rem; padding-top: 1rem; border-top: 0.25
 
 function renderStyledHTML(...contentHTML) {
   return [
-    ...styledHTMLHeadElements,
+    ...styledHTMLHeadElements(),
     "<body>",
     ...contentHTML,
   ].filter(Boolean).join('\n')
@@ -343,7 +351,7 @@ function streamHTML(makeSource) {
 
 function streamStyledMarkdown(makeMarkdown) {
   return streamHTML(async function* () {
-    yield* styledHTMLHeadElements;
+    yield* styledHTMLHeadElements();
     yield "<body><article>";
     yield md.render(await makeMarkdown());
     yield "</article>";
@@ -388,7 +396,7 @@ function* GetHome() {
     )
     const HEAD = findHEADInRefs(refsGenerator())
     if (HEAD == null) {
-      return resHTML('<p>No content</p>', Status.notFound)
+      throw Error("500 Content not found");
     }
 
     return await fetchGitHubRepoFile(
@@ -960,6 +968,23 @@ function* GetWebSocketAPI() {
   }
 }
 
+function* GetAssets() {
+  yield '/assets/'
+  const [name] = yield /^[-a-z\d]+/i
+  yield "/"
+  const [sha256] = yield /^[a-z\d]{64}/i
+  yield "."
+  const extension = yield ["css"]
+
+  return async () => {
+    if (assets[name]) {
+      return resCSSCached(assets[name].source)
+    } else {
+      return resPlainText("Asset not found.", Status.notFound)
+    }
+  }
+}
+
 const routes = [
   GetHealth,
   GetHome,
@@ -980,11 +1005,36 @@ const routes = [
   HighlightS3File,
   GetAnalytics,
   GetFavIcon,
-  GetWebSocketAPI
+  GetWebSocketAPI,
+  GetAssets
 ]
 
 function* Router() {
   return yield routes
+}
+
+const assets = {
+  tailwindcssbase: null,
+  "night-owl": null
+};
+
+async function fetchAsset(url) {
+  return await fetch(url)
+    .then(res => res.text())
+    .then(async (source) => ({
+      source,
+      sha256: await crypto.subtle.digest("SHA-256", (new TextEncoder()).encode(source))
+    }))
+}
+async function loadAssets() {
+  const tailwindcssbase = fetchAsset("https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css")
+  const nightOwl = fetchAsset("https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css")
+
+  assets["tailwindcssbase"] ||= await tailwindcssbase;
+  assets["night-owl"] ||= await nightOwl;
+}
+function assetSHA256(assetName) {
+  return encodeHex(assets[assetName].sha256)
 }
 
 /**
@@ -1008,6 +1058,8 @@ async function handleRequest(request, event) {
         console.log("analytics", result);
       }));
     }
+
+    await loadAssets()
 
     return route.result(url, request, event).catch(error => {
       if (error instanceof Response) {
