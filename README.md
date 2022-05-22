@@ -26,7 +26,7 @@ Render Markdown from any public GitHub repo or gist, handling syntax highlightin
 
 ### Rendered
 
-- React: https://collected.press/github/facebook/react
+- React: https://collected.press/github/facebook/react/README.md
     - React’s Changelog: https://collected.press/github/facebook/react/CHANGELOG.md
 - Night Owl CSS: https://collected.press/github/highlightjs/highlight.js@4c1f2b7f9a13ba3263b140c11524bd934d3b93bf/src/styles/night-owl.css
 - Really Long Readme: https://collected.press/github/avelino/awesome-go@8d309904a16bf60d2f4b30ecf99b226554580cdd/README.md
