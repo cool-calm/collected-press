@@ -15,10 +15,10 @@ Render Markdown from the latest files in any public GitHub repo or gist.
 
 ## Principles
 
-- Service is stateless. You pass in exactly what parameters you need: the GitHub repo, SHA, and path to the file you want to render.
-- Just uses HTTP. Takes advantage of caching heads and other HTTP behaviour.
-- Can be called from anywhere. Backends, frontends, JavaScript, Swift, Rust, C#, Golang.
-- Runs on the edge, has low latency for end users which provides a great user experience.
+- Service is stateless. Just uses HTTP. You pass in exactly what parameters you need: the GitHub repo, SHA, and path to the file you want to render.
+- Can be called from anywhere. Backends, frontends, JavaScript, Swift, Rust, C#, Golang…
+- Runs on the edge which means very low latency for end users so they get a great user experience.
+- Renders syntax highlighting for code blocks on the server. No need to run highlight.js in your user’s browser.
 - Responses (will soon) be heavily cached like a CDN.
 - Unique git tags or SHA must be used in URLs, as we can confidently cache those forever. Links like `https://collected.press/github/facebook/react` are redirected to a URL with the latest SHA like `https://collected.press/github/facebook/react@6e2f38f3a4d58f11bbe86ca6f938c27767366967/`. We do the equivalent of `git fetch` to get the `HEAD` SHA.
 
