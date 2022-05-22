@@ -862,34 +862,56 @@ function jsonrpcReply(id, result) {
   })
 }
 
+/**
+ * 
+ * @param {Request} request
+ * @param {(event: MessageEvent, send: (message: string) => void) => void} handler
+ * @returns {Response}
+ */
+async function webSocketHandler(request, handler) {
+  const upgradeHeader = request.headers.get('Upgrade');
+  if (upgradeHeader !== 'websocket') {
+    return new Response('Expected Upgrade: websocket', { status: 426 });
+  }
+
+  const webSocketPair = new WebSocketPair();
+  const client = webSocketPair[0], server = webSocketPair[1];
+
+  server.addEventListener('message', event => {
+    try {
+      handler(event, server.send.bind(server))
+    }
+    finally { }
+  });
+  server.accept();
+
+  return new Response(null, {
+    status: 101,
+    webSocket: client,
+  });
+}
+
 function* GetWebSocketAPI() {
   yield '/1/ws'
   yield mustEnd
 
   return async (url, request) => {
-    const upgradeHeader = request.headers.get('Upgrade');
-    if (upgradeHeader !== 'websocket') {
-      return new Response('Expected Upgrade: websocket', { status: 426 });
-    }
-
-    const webSocketPair = new WebSocketPair();
-    const client = webSocketPair[0], server = webSocketPair[1];
-
-    server.addEventListener('message', event => {
-      try {
-        const json = (typeof event.data === "string") ? event.data : (new TextDecoder()).decode(event.data)
-        console.log(json)
-        const { id, method, params } = JSON.parse(json)
-        const html = renderMarkdown(params.source, 'a.md', params.mediaType)
-        server.send(jsonrpcReply(id, { html }))
+    return webSocketHandler(request, (event, send) => {
+      const text = (typeof event.data === "string") ? event.data : (new TextDecoder()).decode(event.data)
+      if (text === "Ping") {
+        send("Pong")
       }
-      finally { }
-    });
-    server.accept();
-
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
+      else if (text[0] === "{") {
+        const { id, method, params } = JSON.parse(text)
+        if (method === "echo") {
+          const source = params.source
+          send(jsonrpcReply(id, { source }))
+        } else if (method === "markdown") {
+          const html = renderMarkdown(params.source, 'a.md', params.mediaType)
+          // TODO: reply with content hash of source and result.
+          send(jsonrpcReply(id, { html }))
+        }
+      }
     });
   }
 }
