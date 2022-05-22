@@ -40,8 +40,12 @@ const secureHTMLHeaders = Object.freeze([
 const contentSecurityPolicyHeaders = Object.freeze([
   pair(
     'content-security-policy',
-    "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://unpkg.com; script-src 'self' https://cdn.usefathom.com"
+    "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com"
   ),
+]);
+
+const linkHeaders = Object.freeze([
+  pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
 ]);
 
 const md = markdownIt({ html: true, linkify: true })
@@ -65,6 +69,7 @@ function resHTML(html, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/html;charset=utf-8')
   into(headers, secureHTMLHeaders)
   into(headers, contentSecurityPolicyHeaders)
+  into(headers, linkHeaders)
   return new Response(html, { status, headers })
 }
 function resPlainText(text, status = Status.success, headers = new Headers()) {
@@ -250,45 +255,50 @@ async function fetchPublicS3Object(
   return transformRes(sourceRes)
 }
 
+const styledHTMLHeadElements = [
+  `<!doctype html>`,
+  `<html lang=en>`,
+  `<meta charset=utf-8>`,
+  `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
+  // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
+  '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
+  '<link href="https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
+  '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
+  `<style>
+:root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
+body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
+a { color: var(--_color_); }
+a:hover { text-decoration: underline; }
+p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: var(--block-margin-bottom); }
+pre { white-space: pre-wrap; white-space: break-spaces; }
+h1 { font-size: 2em; font-weight: 600; }
+h2 { font-size: 1.5em; font-weight: 600; }
+h3 { font-size: 1.25em; font-weight: 600; }
+h4 { font-size: 1em; font-weight: 600; }
+h5 { font-size: .875em; font-weight: 600; }
+h6 { font-size: .85em; font-weight: 600; }
+img { display: inline-block; }
+article ul { list-style: inside; }
+article ol { list-style: decimal inside; }
+article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
+article pre { font-size: 90%; }
+article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
+nav ul { display: flex; flex-wrap: wrap; }
+nav a { display: inline-block; padding: 0.5em; background: #f5f5f5; }
+nav a { border: 1px solid #e5e5e5; }
+nav li:not(:first-child) a { border-left: none; }
+nav a:hover { background: #e9e9e9; border-color: #ddd; }
+form { padding: 1rem; }
+form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
+form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
+footer[role=contentinfo] { margin-top: 3rem; padding-top: 1rem; border-top: 0.25px solid currentColor; font-size: 0.75rem; }
+</style>`,
+];
+
 function renderStyledHTML(...contentHTML) {
   return [
-    `<!doctype html>`,
-    `<html lang=en>`,
-    `<meta charset=utf-8>`,
-    `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
-    // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
-    '<link href="https://unpkg.com/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
-    '<link href="https://unpkg.com/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
-    '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
-    `<style>
-    :root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
-    body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
-    a { color: var(--_color_); }
-    a:hover { text-decoration: underline; }
-    p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: var(--block-margin-bottom); }
-    pre { white-space: pre-wrap; white-space: break-spaces; }
-    h1 { font-size: 2em; font-weight: 600; }
-    h2 { font-size: 1.5em; font-weight: 600; }
-    h3 { font-size: 1.25em; font-weight: 600; }
-    h4 { font-size: 1em; font-weight: 600; }
-    h5 { font-size: .875em; font-weight: 600; }
-    h6 { font-size: .85em; font-weight: 600; }
-    img { display: inline-block; }
-    article ul { list-style: inside; }
-    article ol { list-style: decimal inside; }
-    article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
-    article pre { font-size: 90%; }
-    article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
-    nav ul { display: flex; flex-wrap: wrap; }
-    nav a { display: inline-block; padding: 0.5em; background: #f5f5f5; }
-    nav a { border: 1px solid #e5e5e5; }
-    nav li:not(:first-child) a { border-left: none; }
-    nav a:hover { background: #e9e9e9; border-color: #ddd; }
-    form { padding: 1rem; }
-    form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
-    form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
-    footer[role=contentinfo] { margin-top: 3rem; padding-top: 1rem; border-top: 0.25px solid currentColor; font-size: 0.75rem; }
-    </style>`,
+    ...styledHTMLHeadElements,
+    "<body>",
     ...contentHTML,
   ].filter(Boolean).join('\n')
 }
@@ -314,6 +324,30 @@ function renderMarkdown(markdown, path, mimeType, options) {
   }
 
   return html
+}
+
+function streamHTML(makeSource) {
+  const encoder = new TextEncoder()
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+
+  async function performWrite() {
+    for await (const chunk of makeSource()) {
+      await writer.write(encoder.encode(chunk));
+    }
+    await writer.close();
+  }
+
+  return [readable, performWrite()];
+}
+
+function streamStyledMarkdown(makeMarkdown) {
+  return streamHTML(async function* () {
+    yield* styledHTMLHeadElements;
+    yield "<body><article>";
+    yield md.render(await makeMarkdown());
+    yield "</article>";
+  })
 }
 
 /**
@@ -347,7 +381,7 @@ function* GetHome() {
   yield '/'
   yield mustEnd
 
-  return async ({ searchParams }) => {
+  async function getMarkdownSource() {
     const refsGenerator = await fetchGitHubRepoRefs(
       'RoyalIcing',
       'collected-press',
@@ -357,16 +391,26 @@ function* GetHome() {
       return resHTML('<p>No content</p>', Status.notFound)
     }
 
-    const sourceText = await fetchGitHubRepoFile(
+    return await fetchGitHubRepoFile(
       'RoyalIcing',
       'collected-press',
       HEAD.sha,
       'README.md',
     )
-    const params = new Map([['theme', '']])
-    const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', params)
+  }
 
-    return resHTML(html)
+  return async ({ searchParams }, request, event) => {
+    if (searchParams.has('stream')) {
+      const [stream, promise] = streamStyledMarkdown(getMarkdownSource);
+      event.waitUntil(promise);
+      return resHTML(stream);
+    } else {
+      const sourceText = await getMarkdownSource()
+      const params = new Map([['theme', '']])
+      const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', params)
+
+      return resHTML(html)
+    }
   }
 }
 
@@ -965,7 +1009,7 @@ async function handleRequest(request, event) {
       }));
     }
 
-    return route.result(url, request).catch(error => {
+    return route.result(url, request, event).catch(error => {
       if (error instanceof Response) {
         return error
       } else {
