@@ -12,7 +12,7 @@
   "author": "Patrick Smith <pgwsmith@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "prettier": "^2.6.2"
+    "prettier": "^2.7.1"
   },
   "dependencies": {
     "itsybitsy": "^0.1.0",
@@ -21,7 +21,7 @@
     "markdown-it-highlightjs": "^3.5.0",
     "markdown-it-task-lists": "^2.1.1",
     "mrmime": "^1.0.0",
-    "wrangler": "^2.0.6",
+    "wrangler": "^2.1.11",
     "yieldparser": "^0.3.0"
   }
 }
