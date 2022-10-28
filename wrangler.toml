@@ -3,7 +3,6 @@ main = "index.js"
 compatibility_date = "2021-10-04"
 node_compat = true
 
-account_id = ""
 workers_dev = true
 routes = ["collected.press/*"]
 
