@@ -5,6 +5,7 @@ import frontMatterPlugin from 'markdown-it-front-matter'
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
 import { lookup as lookupMime } from 'mrmime'
+import { Status, resJSON, resHTML, resPlainText, resCSSCached, resRedirect } from './src/http'
 import { pair, into } from './src/data'
 import { listViews, recordView } from './src/analytics'
 import { encodeHex } from './src/encodings'
@@ -18,82 +19,10 @@ import {
 } from './src/github'
 // import { sha } from './sha';
 
-const Status = {
-  success: 200,
-  created: 201,
-  accepted: 202,
-  noContent: 204,
-  movedPermanently: 301,
-  // Don’t use 302: https://stackoverflow.com/a/4764473/652615
-  seeOther: 303,
-  notModified: 304,
-  temporaryRedirect: 307,
-  badRequest: 400,
-  unauthorized: 401,
-  forbidden: 403,
-  notFound: 404,
-  methodNotAllowed: 405,
-  requestTimeout: 408,
-  conflict: 409,
-  unprocessableEntity: 422, // Validation failed
-  tooManyRequests: 429,
-}
-
-const secureHTMLHeaders = Object.freeze([
-  pair('strict-transport-security', 'max-age=63072000'),
-  pair('x-content-type-options', 'nosniff'),
-  pair('x-frame-options', 'DENY'),
-  /* pair('x-xss-protection', '1; mode=block'), */
-]);
-
-const contentSecurityPolicyHeaders = Object.freeze([
-  pair(
-    'content-security-policy',
-    "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com"
-  ),
-]);
-
-const linkHeaders = Object.freeze([
-  // pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
-]);
-
 const md = markdownIt({ html: true, linkify: true })
   .use(highlightjsPlugin)
   .use(taskListsPlugin)
   .use(frontMatterPlugin, (frontMatter) => { })
-
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request, event))
-})
-
-function resJSON(json, status = Status.success, headers = new Headers()) {
-  headers.set('content-type', 'application/json')
-  return new Response(JSON.stringify(json), { status, headers })
-}
-function resHTML(html, status = Status.success, headers = new Headers()) {
-  // assignEntries(headers, pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)
-  // assigning(pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)(headers)
-  // assign(headers, [pair('content-type', 'text/html;charset=utf-8')], secureHTMLHeaders, contentSecurityPolicyHeaders)
-
-  headers.set('content-type', 'text/html;charset=utf-8')
-  into(headers, secureHTMLHeaders)
-  into(headers, contentSecurityPolicyHeaders)
-  into(headers, linkHeaders)
-  return new Response(html, { status, headers })
-}
-function resPlainText(text, status = Status.success, headers = new Headers()) {
-  headers.set('content-type', 'text/plain;charset=utf-8')
-  return new Response(text, { status, headers })
-}
-function resCSSCached(text, status = Status.success, headers = new Headers()) {
-  headers.set('content-type', 'text/css;charset=utf-8')
-  headers.set('cache-control', 'public, max-age=604800, s-maxage=43200')
-  return new Response(text, { status, headers })
-}
-function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
-  headers.set('location', location.toString())
-  return new Response(undefined, { status, headers })
-}
 
 /**
  *
@@ -240,6 +169,46 @@ function* GetHealth() {
     )
     const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', searchParams)
     return resHTML(html)
+  }
+}
+
+function* GetGitHubSiteHome() {
+  yield '/github/site/'
+  const [ownerName] = yield githubOwnerNameRegex
+  // yield '/'
+  // const [repoName] = yield githubRepoNameRegex
+  yield mustEnd
+
+  async function getMarkdownSource() {
+    const refsGenerator = await fetchGitHubRepoRefs(
+      ownerName,
+      ownerName,
+    )
+    const HEAD = findHEADInRefs(refsGenerator())
+    if (HEAD == null) {
+      throw Error("500 Content not found");
+    }
+
+    return await fetchGitHubRepoFile(
+      ownerName,
+      ownerName,
+      HEAD.sha,
+      'README.md',
+    )
+  }
+
+  return async ({ searchParams }, request, event) => {
+    if (searchParams.has('stream')) {
+      const [stream, promise] = streamStyledMarkdown(getMarkdownSource);
+      event.waitUntil(promise);
+      return resHTML(stream);
+    } else {
+      const sourceText = await getMarkdownSource()
+      const params = new Map([['theme', '']])
+      const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', params)
+
+      return resHTML(html)
+    }
   }
 }
 
@@ -847,6 +816,9 @@ const routes = [
   GetHealth,
   GetHome,
   GetDoc,
+  // SITES
+  GetGitHubSiteHome,
+  // GITHUB
   GetGitHubGistFile,
   GetGitHubGist,
   GetGitHubRepoFile,
@@ -859,8 +831,10 @@ const routes = [
   GetGitHubRepoHeadsRef,
   GetGitHubRepoTagRefs,
   GetGitHubRepoListFiles,
+  // S3
   GetS3File,
   HighlightS3File,
+  // Analytics
   GetAnalytics,
   GetFavIcon,
   GetWebSocketAPI,
@@ -930,3 +904,7 @@ async function handleRequest(request, event) {
     return resJSON(route, Status.notFound)
   }
 }
+
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request, event))
+})
