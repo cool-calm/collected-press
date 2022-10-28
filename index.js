@@ -15,7 +15,7 @@ import {
   fetchGitHubGistFile,
 } from './src/github'
 import {
-  loadAssets, streamStyledMarkdown, renderStyledHTML, renderMarkdown, renderCodeAsMarkdown
+  lookupAsset, loadAssets, streamStyledMarkdown, renderStyledHTML, renderMarkdown, renderCodeAsMarkdown
 } from './src/html'
 
 /**
@@ -647,8 +647,9 @@ function* GetAssets() {
   const extension = yield ["css"]
 
   return async () => {
-    if (assets[name]) {
-      return resCSSCached(assets[name].source)
+    const asset = lookupAsset(name);
+    if (asset) {
+      return resCSSCached(asset.source)
     } else {
       return resPlainText("Asset not found.", Status.notFound)
     }
@@ -706,7 +707,7 @@ async function handleRequest(request, event) {
   if (route.success) {
     if (url.pathname !== '/analytics') {
       event.waitUntil(recordView(url.pathname).then(result => {
-        console.log("analytics", result);
+        // console.log("analytics", result);
       }));
     }
 

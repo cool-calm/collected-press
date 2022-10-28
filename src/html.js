@@ -14,6 +14,10 @@ const assets = {
   "night-owl": null
 };
 
+export function lookupAsset(assetName) {
+  return assets[assetName]
+}
+
 async function fetchAsset(url) {
   return await fetch(url)
     .then(res => res.text())
@@ -83,6 +87,7 @@ h4 { font-size: 1em; font-weight: 600; }
 h5 { font-size: .875em; font-weight: 600; }
 h6 { font-size: .85em; font-weight: 600; }
 img { display: inline-block; }
+article + article { margin-top: 8rem; }
 article ul { list-style: inside; }
 article ol { list-style: decimal inside; }
 article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
