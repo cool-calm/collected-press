@@ -177,38 +177,53 @@ function* GetGitHubSiteHome() {
   const [ownerName] = yield githubOwnerNameRegex
   // yield '/'
   // const [repoName] = yield githubRepoNameRegex
+  const repoName = ownerName
   yield mustEnd
 
-  async function getMarkdownSource() {
+  async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(
       ownerName,
-      ownerName,
+      repoName,
     )
-    const HEAD = findHEADInRefs(refsGenerator())
-    if (HEAD == null) {
+    const head = findHEADInRefs(refsGenerator())
+    if (head == null) {
       throw Error("500 Content not found");
     }
+    return head.sha;
+  }
+
+  async function getMarkdownSource() {
+    const headSHA = await getSHA()
 
     return await fetchGitHubRepoFile(
       ownerName,
-      ownerName,
-      HEAD.sha,
+      repoName,
+      headSHA,
       'README.md',
     )
   }
 
   return async ({ searchParams }, request, event) => {
-    if (searchParams.has('stream')) {
-      const [stream, promise] = streamStyledMarkdown(getMarkdownSource);
-      event.waitUntil(promise);
-      return resHTML(stream);
-    } else {
-      const sourceText = await getMarkdownSource()
-      const params = new Map([['theme', '']])
-      const html = renderMarkdown(sourceText, 'readme.md', 'text/markdown', params)
+    const headSHA = await getSHA()
+    const sha = headSHA
+    const path = ''
+    const files = await listGitHubRepoFiles(ownerName, repoName, sha, path)
 
-      return resHTML(html)
-    }
+    const filenamePrefix = `${ownerName}/${repoName}@${sha}/`
+    const navSource = Array.from(function* () {
+      for (const file of files) {
+        const name = file.slice(filenamePrefix.length, -1)
+        if (file.endsWith('/')) {
+          yield `- [${name}](#)`
+        }
+      }
+    }.call()).join('\n')
+
+    const sourceText = await getMarkdownSource()
+
+    const html = renderStyledHTML('<header role=banner><nav>', md.render(navSource), '</nav></header>', '<main><article>', md.render(sourceText), '</article></main>')
+
+    return resHTML(html)
   }
 }
 
@@ -893,7 +908,7 @@ async function handleRequest(request, event) {
 
     await loadAssets()
 
-    return route.result(url, request, event).catch(error => {
+    return Promise.resolve(route.result(url, request, event)).catch(error => {
       if (error instanceof Response) {
         return error
       } else {

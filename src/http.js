@@ -39,11 +39,11 @@ const linkHeaders = Object.freeze([
   // pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
 ]);
 
-function resJSON(json, status = Status.success, headers = new Headers()) {
+export function resJSON(json, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'application/json')
   return new Response(JSON.stringify(json), { status, headers })
 }
-function resHTML(html, status = Status.success, headers = new Headers()) {
+export function resHTML(html, status = Status.success, headers = new Headers()) {
   // assignEntries(headers, pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)
   // assigning(pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)(headers)
   // assign(headers, [pair('content-type', 'text/html;charset=utf-8')], secureHTMLHeaders, contentSecurityPolicyHeaders)
@@ -54,16 +54,16 @@ function resHTML(html, status = Status.success, headers = new Headers()) {
   into(headers, linkHeaders)
   return new Response(html, { status, headers })
 }
-function resPlainText(text, status = Status.success, headers = new Headers()) {
+export function resPlainText(text, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/plain;charset=utf-8')
   return new Response(text, { status, headers })
 }
-function resCSSCached(text, status = Status.success, headers = new Headers()) {
+export function resCSSCached(text, status = Status.success, headers = new Headers()) {
   headers.set('content-type', 'text/css;charset=utf-8')
   headers.set('cache-control', 'public, max-age=604800, s-maxage=43200')
   return new Response(text, { status, headers })
 }
-function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
+export function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
   headers.set('location', location.toString())
   return new Response(undefined, { status, headers })
 }
