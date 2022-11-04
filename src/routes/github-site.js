@@ -1,6 +1,7 @@
 import { mustEnd } from 'yieldparser'
-import { githubOwnerNameRegex, githubRepoNameRegex } from './github'
 import {
+  githubOwnerNameRegex,
+  githubRepoNameRegex,
   fetchGitHubRepoFile,
   listGitHubRepoFiles,
   fetchGitHubRepoRefs,
@@ -41,15 +42,13 @@ async function serveRequest(ownerName, repoName, path) {
       ownerName,
       repoName,
       headSHA,
-      path + '/README.md',
+      `${path}/README.md`,
     ).catch(() => null) || await fetchGitHubRepoFile(
       ownerName,
       repoName,
       headSHA,
-      path + '.md',
+      `${path}.md`,
     ).catch(() => null)
-
-    console.log('content', typeof content)
 
     if (typeof content === 'string') {
       return '<article>' + md.render(content) + '</article>'
@@ -117,7 +116,7 @@ function* GetGitHubSiteHome() {
   const [ownerName] = yield githubOwnerNameRegex
   yield '/'
   const [repoName] = yield githubRepoNameRegex
-  yield mustEnd
+  yield [/^\/$/, mustEnd]
 
   return async ({ searchParams }, request, event) => {
     return serveRequest(ownerName, repoName, '')
