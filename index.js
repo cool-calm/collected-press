@@ -638,6 +638,7 @@ function* GetWebSocketAPI() {
   }
 }
 
+// TODO: can we remove this?
 function* GetAssets() {
   yield '/assets/'
   const [name] = yield /^[-a-z\d]+/i
