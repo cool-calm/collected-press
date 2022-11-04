@@ -93,6 +93,7 @@ article ol { list-style: decimal inside; }
 article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
 article pre { font-size: 90%; }
 article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
+nav { margin-bottom: 3rem; }
 nav ul { display: flex; flex-wrap: wrap; gap: 1rem; }
 nav a { display: inline-block; padding: 0.5em; }
 nav a { border-bottom: 1px solid currentColor; }
