@@ -12,17 +12,46 @@ import {
 } from '../html'
 import { resHTML } from '../http'
 
+class GitHubSiteURLBuilder {
+  static asRoot = Symbol();
+  static asSubpath = Symbol();
+
+  constructor(basePath) {
+    this.basePath = basePath
+  }
+
+  static direct(ownerName, repoName) {
+    return new GitHubSiteURLBuilder(`/github-site/${ownerName}/${repoName}/`)
+  }
+
+  static proxied(ownerName, repoName) {
+    return new GitHubSiteURLBuilder("/")
+  }
+
+  buildPath(suffix) {
+    return new URL(suffix, new URL(this.basePath, "https://example.org")).pathname;
+  }
+
+  home() {
+    return this.buildPath("");
+  }
+
+  article(slug) {
+    return this.buildPath(`./${slug}`);
+  }
+}
+
 /**
  * Render Markdown page content
  * @param {string} markdown
  * @returns {Promise<string>}
  */
-async function renderMarkdownPrimaryArticle(markdown) {
+async function renderMarkdownPrimaryArticle(markdown, path) {
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
     element(element) {
       element.tagName = 'a';
-      element.setAttribute('href', '#hello')
+      element.setAttribute('href', path)
       element.before('<h1>', { html: true })
       element.after('</h1>', { html: true })
     }
@@ -35,12 +64,12 @@ async function renderMarkdownPrimaryArticle(markdown) {
  * @param {string} markdown
  * @returns {Promise<string>}
  */
-async function renderMarkdownSecondaryArticle(markdown) {
+async function renderMarkdownSecondaryArticle(markdown, path) {
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
     element(element) {
       element.tagName = 'a';
-      element.setAttribute('href', '#hello')
+      element.setAttribute('href', path)
       element.before('<h2>', { html: true })
       element.after('</h2>', { html: true })
     }
@@ -48,7 +77,7 @@ async function renderMarkdownSecondaryArticle(markdown) {
   return '<article>' + await res.text() + '</article>';
 }
 
-async function serveRequest(ownerName, repoName, path) {
+async function serveRequest(ownerName, repoName, path, urlBuilder) {
   async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(
       ownerName,
@@ -71,7 +100,7 @@ async function serveRequest(ownerName, repoName, path) {
         headSHA,
         'README.md',
       ).catch(() => 'Add a `README.md` file to your repo to create a home page.')
-        .then(renderMarkdownPrimaryArticle)
+        .then(markdown => renderMarkdownPrimaryArticle(markdown, urlBuilder.home()))
     }
 
     const content = await fetchGitHubRepoFile(
@@ -87,7 +116,7 @@ async function serveRequest(ownerName, repoName, path) {
     ).catch(() => null)
 
     if (typeof content === 'string') {
-      return await renderMarkdownPrimaryArticle(content)
+      return await renderMarkdownPrimaryArticle(content, path)
     }
 
     const files = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => [])
@@ -107,8 +136,9 @@ async function serveRequest(ownerName, repoName, path) {
         } else {
           if (true) {
             const name = file.slice(filenamePrefix.length)
+            const urlPath = (path + '/' + name).replace(/\.md$/, '')
             yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
-              .then(renderMarkdownSecondaryArticle)
+              .then(markdown => renderMarkdownSecondaryArticle(markdown, urlPath))
           } else {
             const name = file.slice(filenamePrefix.length).replace(/\.md$/, '')
             yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
@@ -145,6 +175,10 @@ async function serveRequest(ownerName, repoName, path) {
   return resHTML(html)
 }
 
+function getRequestIsDirect(request) {
+  return request.headers.get('host') === 'collected.press'
+}
+
 function* GetGitHubSiteHome() {
   yield '/github-site/'
   const [ownerName] = yield githubOwnerNameRegex
@@ -153,7 +187,9 @@ function* GetGitHubSiteHome() {
   yield [/^\/$/, mustEnd]
 
   return async ({ searchParams }, request, event) => {
-    return serveRequest(ownerName, repoName, '')
+    const isDirect = getRequestIsDirect(request)
+    const urlBuilder = isDirect ? GitHubSiteURLBuilder.direct(ownerName, repoName) : GitHubSiteURLBuilder.proxied();
+    return serveRequest(ownerName, repoName, '', urlBuilder)
   }
 }
 
@@ -168,7 +204,9 @@ function* GetGitHubSiteSubpath() {
   yield mustEnd
 
   return async ({ searchParams }, request, event) => {
-    return serveRequest(ownerName, repoName, path)
+    const isDirect = getRequestIsDirect(request)
+    const urlBuilder = isDirect ? GitHubSiteURLBuilder.direct(ownerName, repoName) : GitHubSiteURLBuilder.proxied();
+    return serveRequest(ownerName, repoName, path, urlBuilder)
   }
 }
 
