@@ -17,7 +17,7 @@ class GitHubSiteURLBuilder {
   static asSubpath = Symbol();
 
   constructor(basePath) {
-    this.basePath = basePath
+    this._basePath = basePath
   }
 
   static direct(ownerName, repoName) {
@@ -29,7 +29,7 @@ class GitHubSiteURLBuilder {
   }
 
   buildPath(suffix) {
-    return new URL(suffix, new URL(this.basePath, "https://example.org")).pathname;
+    return new URL(suffix, new URL(this._basePath, "https://example.org")).pathname;
   }
 
   home() {
@@ -38,6 +38,38 @@ class GitHubSiteURLBuilder {
 
   article(slug) {
     return this.buildPath(`./${slug}`);
+  }
+
+  async adjustHTML(html) {
+    const res = new HTMLRewriter().on('a[href]', {
+      element: (element) => {
+        const rel = element.getAttribute('rel') || ''
+        element.setAttribute('rel', `${rel} noopener`.trim())
+
+        const href = element.getAttribute('href')
+
+
+        let url = null;
+        try {
+          url = new URL(href)
+          if (url.protocol) {
+            return
+          }
+        }
+        catch {}
+
+        
+        let newHref = this.buildPath(href);
+        if (href === '/') {
+          newHref = this.home();
+        }
+
+        console.log("HREF", href, newHref)
+        element.setAttribute('href', newHref)
+
+      }
+    }).transform(resHTML(html));
+    return await res.text();
   }
 }
 
@@ -90,6 +122,16 @@ async function serveRequest(ownerName, repoName, path, urlBuilder) {
     return head.sha;
   }
   const headSHA = await getSHA()
+
+  const headerPromise = fetchGitHubRepoFile(
+    ownerName,
+    repoName,
+    headSHA,
+    `_header.md`,
+  )
+    .then(markdown => md.render(markdown))
+    .then(html => urlBuilder.adjustHTML(html))
+    .catch(() => null)
 
   async function getMainHTML() {
     console.log("getMarkdownSource", path)
@@ -169,8 +211,10 @@ async function serveRequest(ownerName, repoName, path, urlBuilder) {
   }.call()).join('\n')
 
   const mainHTML = await getMainHTML()
+  // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
+  const headerHTML = `<nav>${await headerPromise || md.render(navSource)}</nav>`
 
-  const html = renderStyledHTML('<header role=banner><nav>', md.render(navSource), '</nav></header>', '<main><article>', typeof mainHTML === 'string' ? mainHTML : 'Not found', '</article></main>')
+  const html = renderStyledHTML('<header role=banner>', headerHTML, '</header>', '<main><article>', typeof mainHTML === 'string' ? mainHTML : 'Not found', '</article></main>')
 
   return resHTML(html)
 }

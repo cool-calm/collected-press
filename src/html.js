@@ -93,11 +93,10 @@ article ol { list-style: decimal inside; }
 article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
 article pre { font-size: 90%; }
 article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
-nav ul { display: flex; flex-wrap: wrap; }
-nav a { display: inline-block; padding: 0.5em; background: #f5f5f5; }
-nav a { border: 1px solid #e5e5e5; }
-nav li:not(:first-child) a { border-left: none; }
-nav a:hover { background: #e9e9e9; border-color: #ddd; }
+nav ul { display: flex; flex-wrap: wrap; gap: 1rem; }
+nav a { display: inline-block; padding: 0.5em; }
+nav a { border-bottom: 1px solid currentColor; }
+nav a:hover { background: #e9e9e9; text-decoration: none; }
 form { padding: 1rem; }
 form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
 form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
