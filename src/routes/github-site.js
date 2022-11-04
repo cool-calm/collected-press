@@ -161,7 +161,11 @@ async function serveRequest(ownerName, repoName, path, urlBuilder) {
       return await renderMarkdownPrimaryArticle(content, path)
     }
 
-    const files = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => [])
+    const files = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => null)
+    if (files === null) {
+      return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
+    }
+
     console.log(files)
     const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
     const navSource = (await Promise.all(Array.from(function* () {
