@@ -17,17 +17,6 @@ import { resHTML } from '../http'
  * @param {string} markdown
  * @returns {Promise<string>}
  */
-async function renderMarkdownContent(markdown) {
-  let html = md.render(markdown)
-  const res = new HTMLRewriter().on('div', new ElementHandler()).transform(resHTML(html));
-  return await res.text();
-}
-
-/**
- * Render Markdown page content
- * @param {string} markdown
- * @returns {Promise<string>}
- */
 async function renderMarkdownPrimaryArticle(markdown) {
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
