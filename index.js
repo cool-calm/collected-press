@@ -4,9 +4,10 @@ import { lookup as lookupMime } from 'mrmime'
 import { Status, resJSON, resHTML, resPlainText, resCSSCached, resRedirect } from './src/http'
 import { pair } from './src/data'
 import { listViews, recordView } from './src/analytics'
-import { githubOwnerNameRegex, githubRepoNameRegex } from './src/routes/github'
 import { RoutesGitHubSite } from './src/routes/github-site'
 import {
+  githubOwnerNameRegex,
+  githubRepoNameRegex,
   fetchGitHubRepoFile,
   listGitHubRepoFiles,
   fetchGitHubRepoRefs,

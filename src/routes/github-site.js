@@ -12,6 +12,53 @@ import {
 } from '../html'
 import { resHTML } from '../http'
 
+/**
+ * Render Markdown page content
+ * @param {string} markdown
+ * @returns {Promise<string>}
+ */
+async function renderMarkdownContent(markdown) {
+  let html = md.render(markdown)
+  const res = new HTMLRewriter().on('div', new ElementHandler()).transform(resHTML(html));
+  return await res.text();
+}
+
+/**
+ * Render Markdown page content
+ * @param {string} markdown
+ * @returns {Promise<string>}
+ */
+async function renderMarkdownPrimaryArticle(markdown) {
+  let html = md.render(markdown)
+  const res = new HTMLRewriter().on('h1', {
+    element(element) {
+      element.tagName = 'a';
+      element.setAttribute('href', '#hello')
+      element.before('<h1>', { html: true })
+      element.after('</h1>', { html: true })
+    }
+  }).transform(resHTML(html));
+  return '<article>' + await res.text() + '</article>';
+}
+
+/**
+ * Render Markdown page content, with top-level heading changed to an <h2>
+ * @param {string} markdown
+ * @returns {Promise<string>}
+ */
+async function renderMarkdownSecondaryArticle(markdown) {
+  let html = md.render(markdown)
+  const res = new HTMLRewriter().on('h1', {
+    element(element) {
+      element.tagName = 'a';
+      element.setAttribute('href', '#hello')
+      element.before('<h2>', { html: true })
+      element.after('</h2>', { html: true })
+    }
+  }).transform(resHTML(html));
+  return '<article>' + await res.text() + '</article>';
+}
+
 async function serveRequest(ownerName, repoName, path) {
   async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(
@@ -35,7 +82,7 @@ async function serveRequest(ownerName, repoName, path) {
         headSHA,
         'README.md',
       ).catch(() => 'Add a `README.md` file to your repo to create a home page.')
-      .then(markdown => '<article>' + md.render(markdown) + '</article>')
+        .then(renderMarkdownPrimaryArticle)
     }
 
     const content = await fetchGitHubRepoFile(
@@ -51,7 +98,7 @@ async function serveRequest(ownerName, repoName, path) {
     ).catch(() => null)
 
     if (typeof content === 'string') {
-      return '<article>' + md.render(content) + '</article>'
+      return await renderMarkdownPrimaryArticle(content)
     }
 
     const files = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => [])
@@ -72,9 +119,7 @@ async function serveRequest(ownerName, repoName, path) {
           if (true) {
             const name = file.slice(filenamePrefix.length)
             yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
-              .then(content => {
-                return '<article>' + md.render(content) + '</article>'
-              })
+              .then(renderMarkdownSecondaryArticle)
           } else {
             const name = file.slice(filenamePrefix.length).replace(/\.md$/, '')
             yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
