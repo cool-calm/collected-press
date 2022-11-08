@@ -18,7 +18,7 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run local development server
-      run: npm run dev
+      run: npx wrangler dev --local
     - name: Run Playwright tests
       run: npx playwright test
     - uses: actions/upload-artifact@v3
