@@ -12,3 +12,6 @@ tmp/
 /sha.js
 .envrc
 .vscode/*.log
+/test-results/
+/playwright-report/
+/playwright/.cache/
