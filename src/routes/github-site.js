@@ -109,7 +109,7 @@ async function renderMarkdownSecondaryArticle(markdown, path) {
   return '<article>' + await res.text() + '</article>';
 }
 
-async function serveRequest(ownerName, repoName, path, urlBuilder) {
+async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
   async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(
       ownerName,
@@ -161,12 +161,16 @@ async function serveRequest(ownerName, repoName, path, urlBuilder) {
       return await renderMarkdownPrimaryArticle(content, path)
     }
 
-    const files = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => null)
-    if (files === null) {
+    const allFiles = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => null)
+    if (allFiles === null) {
       return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
     }
 
-    console.log(files)
+    console.log(allFiles)
+    // TODO: could fetch myself to render every article in parallel each with their own time limit.
+
+    const files = allFiles.slice(0, limit)
+
     const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
     const navSource = (await Promise.all(Array.from(function* () {
       for (const file of files) {
@@ -237,7 +241,7 @@ function* GetGitHubSiteHome() {
   return async ({ searchParams }, request, event) => {
     const isDirect = getRequestIsDirect(request)
     const urlBuilder = isDirect ? GitHubSiteURLBuilder.direct(ownerName, repoName) : GitHubSiteURLBuilder.proxied();
-    return serveRequest(ownerName, repoName, '', urlBuilder)
+    return serveRequest(ownerName, repoName, '', urlBuilder, 10)
   }
 }
 
@@ -252,9 +256,11 @@ function* GetGitHubSiteSubpath() {
   yield mustEnd
 
   return async ({ searchParams }, request, event) => {
+    const limit = parseInt(searchParams.get('limit') || '10')
+
     const isDirect = getRequestIsDirect(request)
     const urlBuilder = isDirect ? GitHubSiteURLBuilder.direct(ownerName, repoName) : GitHubSiteURLBuilder.proxied();
-    return serveRequest(ownerName, repoName, path, urlBuilder)
+    return serveRequest(ownerName, repoName, path, urlBuilder, limit)
   }
 }
 
