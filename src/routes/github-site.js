@@ -65,7 +65,6 @@ class GitHubSiteURLBuilder {
           newHref = this.home();
         }
 
-        console.log("HREF", href, newHref)
         element.setAttribute('href', newHref)
 
       }
@@ -169,6 +168,8 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     }
 
     console.log(allFiles)
+
+    // There been as issue where we hit a CPU limit when trying to render dozens of posts at once.
     // TODO: could fetch myself to render every article in parallel each with their own time limit.
 
     const files = allFiles.slice(0, limit)
@@ -186,15 +187,10 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
             yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
           }
         } else {
-          if (true) {
-            const name = file.slice(filenamePrefix.length)
-            const urlPath = (path + '/' + name).replace(/\.md$/, '')
-            yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
-              .then(markdown => renderMarkdownSecondaryArticle(markdown, urlPath))
-          } else {
-            const name = file.slice(filenamePrefix.length).replace(/\.md$/, '')
-            yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
-          }
+          const name = file.slice(filenamePrefix.length)
+          const urlPath = (path + '/' + name).replace(/\.md$/, '')
+          yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
+            .then(markdown => renderMarkdownSecondaryArticle(markdown, urlPath))
         }
       }
     }.call()))).join('\n')
