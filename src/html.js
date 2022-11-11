@@ -4,10 +4,17 @@ import taskListsPlugin from 'markdown-it-task-lists'
 import frontMatterPlugin from 'markdown-it-front-matter'
 import { encodeHex } from './encodings'
 
+let frontMatterCallback = (frontMatter) => {}
+export function setFrontMatterCallback(newCallback) {
+  frontMatterCallback = newCallback
+}
+
 export const md = markdownIt({ html: true, linkify: true })
   .use(highlightjsPlugin)
   .use(taskListsPlugin)
-  .use(frontMatterPlugin, (frontMatter) => { })
+  .use(frontMatterPlugin, (frontMatter) => {
+    frontMatterCallback(frontMatter)
+  })
 
 const assets = {
   tailwindcssbase: null,

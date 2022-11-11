@@ -1,4 +1,5 @@
 import { mustEnd } from 'yieldparser'
+import { parse as parseYAML } from 'yaml'
 import {
   githubOwnerNameRegex,
   githubRepoNameRegex,
@@ -8,7 +9,7 @@ import {
   findHEADInRefs
 } from '../github'
 import {
-  md, renderStyledHTML
+  md, renderStyledHTML, setFrontMatterCallback
 } from '../html'
 import { resHTML } from '../http'
 
@@ -56,9 +57,9 @@ class GitHubSiteURLBuilder {
             return
           }
         }
-        catch {}
+        catch { }
 
-        
+
         let newHref = this.buildPath(href);
         if (href === '/') {
           newHref = this.home();
@@ -97,6 +98,17 @@ async function renderMarkdownPrimaryArticle(markdown, path) {
  * @returns {Promise<string>}
  */
 async function renderMarkdownSecondaryArticle(markdown, path) {
+  let foundTitle = undefined
+  setFrontMatterCallback((frontMatter) => {
+    foundTitle = undefined
+    console.log("Found front matter", frontMatter)
+    try {
+      const foundFrontMatter = parseYAML(frontMatter)
+      foundTitle = foundFrontMatter.title
+    }
+    catch {}
+  })
+
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
     element(element) {
@@ -106,7 +118,9 @@ async function renderMarkdownSecondaryArticle(markdown, path) {
       element.after('</h2>', { html: true })
     }
   }).transform(resHTML(html));
-  return '<article>' + await res.text() + '</article>';
+
+  let renderedTitle = typeof foundTitle === "string" ? md.render(`# ${foundTitle}`) + "\n" : ''
+  return '<article>' + renderedTitle + await res.text() + '</article>';
 }
 
 async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
@@ -172,7 +186,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     const files = allFiles.slice(0, limit)
 
     const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
-    const navSource = (await Promise.all(Array.from(function* () {
+    const articlesHTML = (await Promise.all(Array.from(function* () {
       for (const file of files) {
         if (file.endsWith('/')) {
           const name = file.slice(filenamePrefix.length, -1)
@@ -196,7 +210,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
         }
       }
     }.call()))).join('\n')
-    return navSource
+    return articlesHTML
   }
 
   const sha = headSHA
@@ -222,7 +236,14 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
   const headerHTML = `<nav>${await headerPromise || md.render(navSource)}</nav>`
 
-  const html = renderStyledHTML('<header role=banner>', headerHTML, '</header>', '<main><article>', typeof mainHTML === 'string' ? mainHTML : 'Not found', '</article></main>')
+  const html = renderStyledHTML(
+    '<header role=banner>',
+    headerHTML,
+    '</header>',
+    '<main><article>',
+    typeof mainHTML === 'string' ? mainHTML : 'Not found',
+    '</article></main>'
+  )
 
   return resHTML(html)
 }
