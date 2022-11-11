@@ -1,5 +1,4 @@
 import { mustEnd } from 'yieldparser'
-import { parse as parseYAML } from 'yaml'
 import {
   githubOwnerNameRegex,
   githubRepoNameRegex,
@@ -9,9 +8,20 @@ import {
   findHEADInRefs
 } from '../github'
 import {
-  md, renderStyledHTML, setFrontMatterCallback
+  md, renderStyledHTML
 } from '../html'
 import { resHTML } from '../http'
+
+class RepoSource {
+  constructor(ownerName, repoName) {
+    this.ownerName = ownerName
+    this.repoName = repoName
+  }
+
+  get profilePictureURL() {
+    return new URL(`${this.ownerName}.png`, "https://github.com/")
+  }
+}
 
 class GitHubSiteURLBuilder {
   static asRoot = Symbol();
@@ -78,13 +88,15 @@ class GitHubSiteURLBuilder {
  * @param {string} markdown
  * @returns {Promise<string>}
  */
-async function renderMarkdownPrimaryArticle(markdown, path) {
+async function renderMarkdownPrimaryArticle(markdown, path, repoSource) {
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
     element(element) {
       element.tagName = 'a';
       element.setAttribute('href', path)
       element.before('<h1>', { html: true })
+      
+      element.after(`<div style="margin-bottom: 3rem"><img src="${repoSource.profilePictureURL}" style="border-radius: 9999px; width: 36px; height: 36px; margin-right: 0.5em">Patrick Smith</div>`, { html: true })
       element.after('</h1>', { html: true })
     }
   }).transform(resHTML(html));
@@ -96,7 +108,7 @@ async function renderMarkdownPrimaryArticle(markdown, path) {
  * @param {string} markdown
  * @returns {Promise<string>}
  */
-async function renderMarkdownSecondaryArticle(markdown, path) {
+async function renderMarkdownSecondaryArticle(markdown, path, repoSource) {
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
     element(element) {
@@ -111,6 +123,8 @@ async function renderMarkdownSecondaryArticle(markdown, path) {
 }
 
 async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
+  const repoSource = new RepoSource(ownerName, repoName)
+
   async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(
       ownerName,
@@ -143,7 +157,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
         headSHA,
         'README.md',
       ).catch(() => 'Add a `README.md` file to your repo to create a home page.')
-        .then(markdown => renderMarkdownPrimaryArticle(markdown, urlBuilder.home()))
+        .then(markdown => renderMarkdownPrimaryArticle(markdown, urlBuilder.home(), repoSource))
     }
 
     const content = await fetchGitHubRepoFile(
@@ -159,7 +173,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     ).catch(() => null)
 
     if (typeof content === 'string') {
-      return await renderMarkdownPrimaryArticle(content, path)
+      return await renderMarkdownPrimaryArticle(content, path, repoSource)
     }
 
     const allFiles = await listGitHubRepoFiles(ownerName, repoName, sha, path + '/').catch(() => null)
@@ -190,7 +204,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
           const name = file.slice(filenamePrefix.length)
           const urlPath = (path + '/' + name).replace(/\.md$/, '')
           yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
-            .then(markdown => renderMarkdownSecondaryArticle(markdown, urlPath))
+            .then(markdown => renderMarkdownSecondaryArticle(markdown, urlPath, repoSource))
         }
       }
     }.call()))).join('\n')

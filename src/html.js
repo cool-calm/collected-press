@@ -83,13 +83,14 @@ const styledHTMLHeadElements = () => [
   '<title>Collected.Press</title>',
   `<style>
 :root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
-body { max-width: 50rem; margin: auto; padding: 3rem 1rem; }
+body { max-width: 50rem; margin: auto; padding: 3rem 1rem; background: rgb(250 250 250) }
 a { color: var(--_color_); }
 a:hover { text-decoration: underline; }
 p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: var(--block-margin-bottom); }
 pre { white-space: pre-wrap; white-space: break-spaces; }
-h1, article > h2:first-child { font-size: 2em; font-weight: 600; }
-h2 { font-size: 1.5em; font-weight: 600; }
+h1, article > h2:first-child { font-size: 3em; line-height: 3.5rem; font-weight: 600; }
+h1 > a:only-child { color: inherit; }
+h2 { font-size: 2em; font-weight: 600; }
 h3 { font-size: 1.25em; font-weight: 600; }
 h4 { font-size: 1em; font-weight: 600; }
 h5 { font-size: .875em; font-weight: 600; }
@@ -101,11 +102,11 @@ article ol { list-style: decimal inside; }
 article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
 article pre { font-size: 90%; }
 article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
-nav { margin-bottom: 3rem; }
-nav ul { display: flex; flex-wrap: wrap; gap: 1rem; }
-nav a { display: inline-block; padding: 0.5em; }
-nav a { border-bottom: 1px solid currentColor; }
-nav a:hover { background: #e9e9e9; text-decoration: none; }
+nav { display: flex; justify-content: center; margin-bottom: 3rem; }
+nav ul { display: flex; flex-wrap: wrap; }
+nav ul { padding: 0 0.5em; border-radius: 9999px; background: white; box-shadow: rgb(255, 255, 255) 0px 0px 0px 0px, rgba(24, 24, 27, 0.05) 0px 0px 0px 1px, rgba(39, 39, 42, 0.05) 0px 10px 15px -3px, rgba(39, 39, 42, 0.05) 0px 4px 6px -4px; }
+nav a { display: inline-block; padding: 0.5em 1em; font-weight: bold; color: inherit; }
+nav a:hover { color: var(--_color_); text-decoration: none; }
 form { padding: 1rem; }
 form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
 form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
