@@ -12,6 +12,9 @@ staging: clean sha.js
 dev:
 	npm run dev
 
+test_e2e:
+	npx playwright test
+
 logs_production:
 	CLOUDFLARE_ACCOUNT_ID=$(CLOUDFLARE_ACCOUNT_ID) CLOUDFLARE_ZONE_ID=$(CLOUDFLARE_ZONE_ID) npx wrangler tail
 

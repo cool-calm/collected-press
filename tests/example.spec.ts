@@ -5,7 +5,7 @@ test('homepage has headings and links', async ({ page }) => {
 
   await expect(page).toHaveTitle(/Collected.Press/);
 
-  expect(page.getByRole('heading', { name: 'Examples' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Examples' })).toBeVisible();
   // expect(screenTest(Heading('Examples'))).toBeVisible();
 
   const getStarted = page.getByRole('link', { name: 'View Source on GitHub' });
