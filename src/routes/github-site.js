@@ -88,6 +88,19 @@ class GitHubSiteURLBuilder {
  * @param {string} markdown
  * @returns {Promise<string>}
  */
+async function renderMarkdownStandalonePage(markdown, path, repoSource) {
+  let html = md.render(markdown)
+  const res = new HTMLRewriter().on('h1', {
+    element(element) {}
+  }).transform(resHTML(html));
+  return '<article>' + await res.text() + '</article>';
+}
+
+/**
+ * Render Markdown page content
+ * @param {string} markdown
+ * @returns {Promise<string>}
+ */
 async function renderMarkdownPrimaryArticle(markdown, path, repoSource) {
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
@@ -157,7 +170,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
         headSHA,
         'README.md',
       ).catch(() => 'Add a `README.md` file to your repo to create a home page.')
-        .then(markdown => renderMarkdownPrimaryArticle(markdown, urlBuilder.home(), repoSource))
+        .then(markdown => renderMarkdownStandalonePage(markdown, urlBuilder.home(), repoSource))
     }
 
     const content = await fetchGitHubRepoFile(
