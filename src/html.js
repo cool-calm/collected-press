@@ -83,7 +83,7 @@ const styledHTMLHeadElements = () => [
   '<title>Collected.Press</title>',
   `<style>
 :root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
-body { max-width: 50rem; margin: auto; padding: 3rem 1rem; background: rgb(250 250 250) }
+body { line-height: 1.7; max-width: 50rem; margin: auto; padding: 3rem 1rem; background: rgb(250 250 250) }
 a { color: var(--_color_); }
 a:hover { text-decoration: underline; }
 p, ul, ol, pre, hr, blockquote, h1, h2, h3, h4, h5, h6 { margin-bottom: var(--block-margin-bottom); }
@@ -96,6 +96,7 @@ h4 { font-size: 1em; font-weight: 600; }
 h5 { font-size: .875em; font-weight: 600; }
 h6 { font-size: .85em; font-weight: 600; }
 img { display: inline-block; }
+article { color: rgb(82, 82, 91); }
 article + article { margin-top: 8rem; }
 article ul { list-style: inside; }
 article ol { list-style: decimal inside; }
