@@ -251,9 +251,9 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     '<header role=banner>',
     headerHTML,
     '</header>',
-    '<main><article>',
+    '<main>',
     typeof mainHTML === 'string' ? mainHTML : 'Not found',
-    '</article></main>'
+    '</main>'
   )
 
   return resHTML(html)
