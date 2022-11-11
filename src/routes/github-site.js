@@ -98,17 +98,6 @@ async function renderMarkdownPrimaryArticle(markdown, path) {
  * @returns {Promise<string>}
  */
 async function renderMarkdownSecondaryArticle(markdown, path) {
-  let foundTitle = undefined
-  setFrontMatterCallback((frontMatter) => {
-    foundTitle = undefined
-    console.log("Found front matter", frontMatter)
-    try {
-      const foundFrontMatter = parseYAML(frontMatter)
-      foundTitle = foundFrontMatter.title
-    }
-    catch {}
-  })
-
   let html = md.render(markdown)
   const res = new HTMLRewriter().on('h1', {
     element(element) {
@@ -119,8 +108,7 @@ async function renderMarkdownSecondaryArticle(markdown, path) {
     }
   }).transform(resHTML(html));
 
-  let renderedTitle = typeof foundTitle === "string" ? md.render(`# ${foundTitle}`) + "\n" : ''
-  return '<article>' + renderedTitle + await res.text() + '</article>';
+  return '<article>' + await res.text() + '</article>';
 }
 
 async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
