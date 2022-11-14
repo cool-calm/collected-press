@@ -19,7 +19,7 @@ Render Markdown from any public GitHub repo or gist, handling syntax highlightin
 - Can be called from anywhere. Backends, frontends, JavaScript, Swift, Rust, C#, Golang…
 - Runs on the edge which means very low latency for end users so they get a great user experience.
 - Renders syntax highlighting for code blocks on the server. This means there’s no need to run highlight.js in your user’s browser, you just need to load the CSS.
-- Responses (will soon) be heavily cached like a CDN.
+- Responses (will soon) be cached like a CDN.
 - Unique git tags or SHA must be used in URLs, as we can confidently cache those forever. Links like `https://collected.press/github/facebook/react` are redirected to a URL with the latest SHA like `https://collected.press/github/facebook/react@6e2f38f3a4d58f11bbe86ca6f938c27767366967/`. We do the equivalent of `git fetch` to get the latest `HEAD` SHA for you.
 
 ## Examples
