@@ -238,6 +238,8 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
       return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
     }
 
+    allFiles.reverse()
+
     // There been as issue where we hit a CPU limit when trying to render dozens of posts at once.
     // TODO: could fetch myself to render every article in parallel each with their own time limit.
 
