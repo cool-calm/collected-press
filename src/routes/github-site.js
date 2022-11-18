@@ -135,7 +135,6 @@ async function extractMarkdownMetadata(markdown) {
   }
   catch {}
 
-  console.log('frontmatter', frontmatterSource)
   if ('title' in frontmatter && typeof frontmatter.title === 'string') {
     let date = null
     try {
@@ -208,7 +207,6 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     .catch(() => null)
 
   async function getMainHTML() {
-    console.log("getMarkdownSource", path)
     if (path === '') {
       return await fetchGitHubRepoFile(
         ownerName,
@@ -239,8 +237,6 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     if (allFiles === null) {
       return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
     }
-
-    console.log(allFiles)
 
     // There been as issue where we hit a CPU limit when trying to render dozens of posts at once.
     // TODO: could fetch myself to render every article in parallel each with their own time limit.
