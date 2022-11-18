@@ -5,7 +5,7 @@ test('homepage has headings and links', async ({ page }) => {
 
   await expect(page).toHaveTitle(/Collected.Press/);
 
-  await expect(page.getByRole('heading', { name: 'Patrick Smith — Product Developer' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Patrick Smith — Product Developer & Design Engineer' })).toBeVisible();
   // expect(screenTest(Heading('Examples'))).toBeVisible();
 
   await expect(page.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/RoyalIcing');
@@ -22,7 +22,6 @@ test('can navigate between pages', async ({ page }) => {
 
   await expect(page).toHaveTitle(/Collected.Press/);
 
-  await expect(page.getByRole('heading', { name: 'Patrick Smith — Product Developer' })).toBeVisible();
   // expect(screenTest(Heading('Examples'))).toBeVisible();
 
   await page.getByRole('link', { name: '2020' }).click();
