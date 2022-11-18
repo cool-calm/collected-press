@@ -30,7 +30,7 @@ test('can navigate between pages', async ({ page }) => {
 });
 
 test('each article’s title is listed as links', async ({ page }) => {
-  await page.goto('http://localhost:4321/github-site/RoyalIcing/RoyalIcing');
+  await page.goto('http://localhost:4321/github-site/RoyalIcing/RoyalIcing/2020');
 
   await page.getByRole('link', { name: 'My most used commands for front-end' }).click();
 
