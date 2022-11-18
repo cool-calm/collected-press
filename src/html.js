@@ -103,11 +103,14 @@ article ol { list-style: decimal inside; }
 article ul ul, article ul ol, article ol ul, article ol ol { --block-margin-bottom: 0; padding-left: 2em; }
 article pre { font-size: 90%; }
 article code:not(pre *) { font-size: 90%; background-color: var(--shade-color); padding: .175em .375em; border-radius: 0.2em; }
-nav { display: flex; justify-content: center; margin-bottom: 3rem; }
-nav ul { display: flex; flex-wrap: wrap; }
-nav ul { padding: 0 0.5em; border-radius: 9999px; background: white; box-shadow: rgb(255, 255, 255) 0px 0px 0px 0px, rgba(24, 24, 27, 0.05) 0px 0px 0px 1px, rgba(39, 39, 42, 0.05) 0px 10px 15px -3px, rgba(39, 39, 42, 0.05) 0px 4px 6px -4px; }
-nav a { display: inline-block; padding: 0.5em 1em; font-weight: bold; color: inherit; }
-nav a:hover { color: var(--_color_); text-decoration: none; }
+header nav { display: flex; justify-content: center; margin-bottom: 3rem; }
+header nav ul { display: flex; flex-wrap: wrap; }
+header nav ul { padding: 0 0.5em; border-radius: 9999px; background: white; box-shadow: rgb(255, 255, 255) 0px 0px 0px 0px, rgba(24, 24, 27, 0.05) 0px 0px 0px 1px, rgba(39, 39, 42, 0.05) 0px 10px 15px -3px, rgba(39, 39, 42, 0.05) 0px 4px 6px -4px; }
+header nav a { display: inline-block; padding: 0.5em 1em; font-weight: bold; color: inherit; }
+header nav a:hover { color: var(--_color_); text-decoration: none; }
+main nav { font-size: 1.5rem; }
+main nav li [data-date] { display: block; font-size: 0.875rem; margin-bottom: -0.75rem; }
+main nav li a { display: inline-flex; padding: 0.5em 0; font-weight: bold; color: currentColor; }
 form { padding: 1rem; }
 form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
 form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }

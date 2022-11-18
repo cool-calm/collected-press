@@ -28,3 +28,11 @@ test('can navigate between pages', async ({ page }) => {
 
   await expect(page).toHaveURL('http://localhost:4321/github-site/RoyalIcing/RoyalIcing/2020');
 });
+
+test('each article’s title is listed as links', async ({ page }) => {
+  await page.goto('http://localhost:4321/github-site/RoyalIcing/RoyalIcing');
+
+  await page.getByRole('link', { name: 'My most used commands for front-end' }).click();
+
+  await expect(page).toHaveURL('http://localhost:4321/github-site/RoyalIcing/RoyalIcing/2020/most-used-commands-for-front-end');
+});
