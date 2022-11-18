@@ -263,7 +263,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
           yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
             .then(markdown => extractMarkdownMetadata(markdown))
             .then(({ title, date }) => h('li', {},
-              typeof date === 'string' ? h('span', { "data-date": true }, formatDate(date, 'MMMM dd, yyyy')) : '',
+              date instanceof Date ? h('span', { "data-date": true }, formatDate(date, 'MMMM dd, yyyy')) : '',
               h('a', { href: urlPath }, title)
             ))
         }
