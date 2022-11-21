@@ -79,7 +79,7 @@ const styledHTMLHeadElements = () => [
   `<link href="/assets/night-owl/${assetSHA256("night-owl")}.css" rel="stylesheet">`,
   // '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
   // '<link href="https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
-  '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
+  // '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',
   '<title>Collected.Press</title>',
   `<style>
 :root { --_color_: #0060F2; --shade-color: rgba(0,0,0,0.1); --block-margin-bottom: 1rem; }
