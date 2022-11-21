@@ -1,6 +1,6 @@
 name = "press"
 main = "index.js"
-compatibility_date = "2021-10-04"
+compatibility_date = "2022-11-20"
 usage_model = "unbound"
 node_compat = true
 
