@@ -296,6 +296,7 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
   const mainHTML = await getMainHTML()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
   const headerHTML = `<nav>${await headerPromise || md.render(navSource)}</nav>`
+  const footerHTML = `<footer>${navigator?.userAgent}</footer>`
 
   const html = renderStyledHTML(
     '<header role=banner>',
@@ -303,7 +304,8 @@ async function serveRequest(ownerName, repoName, path, urlBuilder, limit) {
     '</header>',
     '<main>',
     typeof mainHTML === 'string' ? mainHTML : 'Not found',
-    '</main>'
+    '</main>',
+    footerHTML
   )
 
   return resHTML(html)
