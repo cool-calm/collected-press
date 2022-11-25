@@ -4,6 +4,7 @@
       "module": "esnext",
       "lib": ["esnext"],
       "moduleResolution": "node",
-      "types": ["@cloudflare/workers-types", "jest"]
+      "types": ["@cloudflare/workers-types", "jest"],
+      "allowSyntheticDefaultImports": true
     }
   }
