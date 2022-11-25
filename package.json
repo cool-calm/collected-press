@@ -11,9 +11,9 @@
   "author": "Patrick Smith <pgwsmith@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.27.1",
+    "@playwright/test": "^1.28.1",
     "prettier": "^2.7.1",
-    "wrangler": "^2.4.0"
+    "wrangler": "^2.4.4"
   },
   "dependencies": {
     "date-fns": "^2.29.3",
