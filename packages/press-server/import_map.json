@@ -1,0 +1,11 @@
+{
+    "imports": {
+      "markdown-it": "https://cdn.skypack.dev/markdown-it",
+      "date-fns": "https://cdn.skypack.dev/date-fns",
+      "markdown-it-front-matter": "https://cdn.skypack.dev/markdown-it-front-matter",
+      "markdown-it-highlightjs": "https://cdn.skypack.dev/markdown-it-highlightjs",
+      "markdown-it-task-lists": "https://cdn.skypack.dev/markdown-it-task-lists",
+      "vhtml": "https://cdn.skypack.dev/vhtml",
+      "yaml": "https://cdn.skypack.dev/yaml"
+    }
+  }

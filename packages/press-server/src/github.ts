@@ -1,4 +1,4 @@
-import { resJSON } from '../packages/press-server/src/http.js'
+import { resJSON } from './http'
 
 export const githubOwnerNameRegex = /^[-_a-z\d]+/i
 export const githubRepoNameRegex = /^[-_.a-z\d]+/i
@@ -79,7 +79,7 @@ export async function fetchGitHubRepoRefs(ownerName, repoName) {
         arrayBuffer.slice(current, current + 4),
       )
       current += 4
-      const length = parseInt(lengthHex, '16')
+      const length = parseInt(lengthHex, 16)
       if (length <= 1) {
         continue linesLoop
       }

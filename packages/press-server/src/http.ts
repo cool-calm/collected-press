@@ -1,4 +1,4 @@
-import { pair, into } from '../../../src/data'
+import { pair, into } from './data'
 
 export const Status = {
   success: 200,

@@ -8,9 +8,9 @@ workers_dev = true
 routes = ["collected.press/*"]
 
 [env.staging]
-    name = "collected-press-staging"
-    routes = ["staging.collected.press/*"]
-    node_compat = true
+name = "collected-press-staging"
+routes = ["staging.collected.press/*"]
+node_compat = true
 
 [dev]
-    port = 4321
+port = 4321

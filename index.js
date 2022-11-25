@@ -1,7 +1,7 @@
 import { parse, mustEnd } from 'yieldparser'
 import { bitsy } from 'itsybitsy'
 import { lookup as lookupMime } from 'mrmime'
-import { Status, resJSON, resHTML, resPlainText, resCSSCached, resRedirect } from './src/http'
+import { Status, resJSON, resHTML, resPlainText, resCSSCached, resRedirect } from './packages/press-server/src/http.js'
 import { pair } from './src/data'
 import { listViews, recordView } from './src/analytics'
 import { RoutesGitHubSite } from './src/routes/github-site'
