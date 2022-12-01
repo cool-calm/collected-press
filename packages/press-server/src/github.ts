@@ -96,7 +96,17 @@ export async function fetchGitHubRepoRefs(ownerName, repoName) {
 
       const [ref] = refRaw.split('\u0000')
 
-      const r = { ref, oid }
+      interface Item {
+        ref: string
+        oid: string
+        target?: string
+        peeled?: string
+        HEADRef?: string
+        objectFormat?: string
+        agent?: string
+      }
+
+      const r: Item = { ref, oid }
       // r.attrs = attrs;
       for (const attr of attrs) {
         const [name, value] = attr.split(':')

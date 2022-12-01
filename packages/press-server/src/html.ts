@@ -2,7 +2,7 @@ import markdownIt from 'markdown-it'
 import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
 import frontMatterPlugin from 'markdown-it-front-matter'
-import { encodeHex } from './encodings'
+import { assetSHA256 } from './assets'
 
 let frontMatterCallback = (frontMatter) => {}
 export function setFrontMatterCallback(newCallback) {
@@ -15,42 +15,6 @@ export const md = markdownIt({ html: true, linkify: true })
   .use(frontMatterPlugin, (frontMatter) => {
     frontMatterCallback(frontMatter)
   })
-
-const assetSources = {
-  "tailwindcssbase": "https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css",
-  "night-owl": "https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css",
-}
-const assetsCache = new Map();
-
-export function lookupAsset(assetName) {
-  return assetsCache.get(assetName)
-}
-
-async function fetchAsset(url) {
-  return await fetch(url)
-    .then(res => res.text())
-    .then(async (source) => ({
-      source,
-      sha256: await crypto.subtle.digest("SHA-256", (new TextEncoder()).encode(source))
-    }))
-}
-export async function loadAssets() {
-  const promises = [];
-  for (const [key, url] of Object.entries(assetSources)) {
-    if (!assetsCache.has(key)) {
-      promises.push(
-        fetchAsset(url).then((data) => {
-          assetsCache.set(key, data);
-        })
-      );
-    }
-  }
-
-  await Promise.all(promises);
-}
-function assetSHA256(assetName) {
-  return encodeHex(assetsCache.get(assetName).sha256)
-}
 
 function streamHTML(makeSource) {
   const encoder = new TextEncoder()
