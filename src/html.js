@@ -148,14 +148,3 @@ export function renderMarkdown(markdown, path, mimeType, options) {
 
   return html
 }
-
-/**
- *
- * @param {string} markdown
- * @param {string} type
- * @returns {string}
- */
-export function renderCodeAsMarkdown(markdown, type) {
-  markdown = [`~~~~~~~~~~~~${type}`, markdown, '~~~~~~~~~~~~'].join('\n')
-  return md.render(markdown)
-}
