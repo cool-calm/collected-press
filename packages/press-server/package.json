@@ -19,7 +19,7 @@
   "scripts": {
     "prepack": "npm run build",
     "build": "parcel build",
-    "test": "parcel build"
+    "test": "jest && tsc --noEmit && parcel build"
   },
   "author": "Patrick Smith",
   "license": "MIT",
