@@ -16,7 +16,7 @@ import {
 import { resHTML } from './http'
 
 class RepoSource {
-  constructor(public ownerName: string, public repoName: string) {}
+  constructor(public ownerName: string, public repoName: string) { }
 
   get profilePictureURL() {
     return new URL(`${this.ownerName}.png`, 'https://github.com/')
@@ -27,7 +27,7 @@ class GitHubSiteURLBuilder {
   static asRoot = Symbol()
   static asSubpath = Symbol()
 
-  constructor(private _basePath: string) {}
+  constructor(private _basePath: string) { }
 
   static direct(ownerName: string, repoName: string) {
     return new GitHubSiteURLBuilder(`/github-site/${ownerName}/${repoName}/`)
@@ -65,7 +65,7 @@ class GitHubSiteURLBuilder {
             if (url.protocol) {
               return
             }
-          } catch {}
+          } catch { }
 
           let newHref = this.buildPath(href)
           if (href === '/') {
@@ -89,7 +89,7 @@ async function renderMarkdownStandalonePage(markdown, path, repoSource) {
   let html = md.render(markdown)
   const res = new HTMLRewriter()
     .on('h1', {
-      element(element) {},
+      element(element) { },
     })
     .transform(resHTML(html))
   return '<article>' + (await res.text()) + '</article>'
@@ -133,14 +133,14 @@ async function extractMarkdownMetadata(markdown) {
   let frontmatter: { title?: string; date?: string } = {}
   try {
     frontmatter = parseYAML(frontmatterSource) ?? {}
-  } catch {}
+  } catch { }
 
   if ('title' in frontmatter && typeof frontmatter.title === 'string') {
     let date = null
     try {
       date =
         typeof frontmatter.date === 'string' ? parseISO(frontmatter.date) : null
-    } catch {}
+    } catch { }
     return {
       title: frontmatter.title,
       date,
@@ -188,8 +188,6 @@ export async function serveRequest(
   ownerName: string,
   repoName: string,
   path: string,
-  urlBuilder = GitHubSiteURLBuilder.proxied(ownerName, repoName),
-  limit = 500,
 ) {
   await loadAssets()
 
@@ -303,10 +301,10 @@ export async function serveRequest(
                       {},
                       date instanceof Date
                         ? h(
-                            'span',
-                            { 'data-date': true },
-                            formatDate(date, 'MMMM dd, yyyy'),
-                          )
+                          'span',
+                          { 'data-date': true },
+                          formatDate(date, 'MMMM dd, yyyy'),
+                        )
                         : '',
                       h('a', { href: urlPath }, title),
                     ),
@@ -348,9 +346,8 @@ export async function serveRequest(
 
   const mainHTML = await getMainHTML()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
-  const headerHTML = `<nav>${
-    (await headerPromise) || md.render(navSource)
-  }</nav>`
+  const headerHTML = `<nav>${(await headerPromise) || md.render(navSource)
+    }</nav>`
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
   const footerHTML = ``
 
