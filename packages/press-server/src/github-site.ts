@@ -84,36 +84,44 @@ async function extractMarkdownMetadata(markdown) {
   setFrontMatterCallback((receivedFrontmatter) => {
     frontmatterSource = receivedFrontmatter
   })
+  // TODO: extract front-matter without having to parse the entire file as Markdown
   const html = md.render(markdown)
   let frontmatter: { title?: string; date?: string } = {}
   try {
     frontmatter = parseYAML(frontmatterSource) ?? {}
   } catch { }
 
-  if ('title' in frontmatter && typeof frontmatter.title === 'string') {
-    let date = null
-    try {
-      date =
-        typeof frontmatter.date === 'string' ? parseISO(frontmatter.date) : null
-    } catch { }
-    return {
-      title: frontmatter.title,
-      date,
-    }
+  let title: string | null = null
+  let date: Date | null = null
+
+  if (typeof frontmatter.title === 'string') {
+    title = frontmatter.title
   }
 
-  let foundTitle = ''
-  const res = new HTMLRewriter()
-    .on('h1', {
-      text(chunk) {
-        foundTitle += chunk.text
-      },
-    })
-    .transform(resHTML(html))
-  await res.text()
+  if (typeof frontmatter.date === 'string') {
+    try {
+      date = parseISO(frontmatter.date)
+    } catch { }
+  }
 
-  foundTitle = foundTitle.trim()
-  return { title: foundTitle }
+  if (title === null) {
+    let foundTitle = ''
+    const res = new HTMLRewriter()
+      .on('h1', {
+        text(chunk) {
+          foundTitle += chunk.text
+        },
+      })
+      .transform(resHTML(html))
+    await res.text()
+
+    title = foundTitle.trim()
+  }
+
+  return {
+    title,
+    date,
+  }
 }
 
 /**
