@@ -9,6 +9,7 @@ import {
 } from './github'
 import {
   md,
+  renderMarkdown,
   renderStyledHTML,
   setFrontMatterCallback,
 } from './html'
@@ -79,28 +80,19 @@ async function renderMarkdownPrimaryArticle(markdown, path, repoSource) {
   return '<article>' + (await res.text()) + '</article>'
 }
 
-async function extractMarkdownMetadata(markdown) {
-  let frontmatterSource = ''
-  setFrontMatterCallback((receivedFrontmatter) => {
-    frontmatterSource = receivedFrontmatter
-  })
-  // TODO: extract front-matter without having to parse the entire file as Markdown
-  const html = md.render(markdown)
-  let frontmatter: { title?: string; date?: string } = {}
-  try {
-    frontmatter = parseYAML(frontmatterSource) ?? {}
-  } catch { }
+async function extractMarkdownMetadata(markdown: string) {
+  const { html, frontMatter } = renderMarkdown(markdown)
 
   let title: string | null = null
   let date: Date | null = null
 
-  if (typeof frontmatter.title === 'string') {
-    title = frontmatter.title
+  if (typeof frontMatter.title === 'string') {
+    title = frontMatter.title
   }
 
-  if (typeof frontmatter.date === 'string') {
+  if (typeof frontMatter.date === 'string') {
     try {
-      date = parseISO(frontmatter.date)
+      date = parseISO(frontMatter.date)
     } catch { }
   }
 
@@ -213,7 +205,7 @@ export async function handleRequest(
       return await renderMarkdownPrimaryArticle(content, path, repoSource)
     }
 
-    const allFiles = await listGitHubRepoFiles(
+    const allFiles: ReadonlyArray<string> = await listGitHubRepoFiles(
       ownerName,
       repoName,
       sha,
@@ -223,13 +215,13 @@ export async function handleRequest(
       return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
     }
 
-    allFiles.reverse()
-
     // There been as issue where we hit a CPU limit when trying to render dozens of posts at once.
     // TODO: could fetch myself to render every article in parallel each with their own time limit.
 
     const limit = 500
-    const files = allFiles.slice(0, limit)
+    let files = allFiles.slice(0, limit)
+
+    files.reverse()
 
     const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
     const articlesHTML = (
@@ -238,19 +230,17 @@ export async function handleRequest(
           function* () {
             for (const file of files) {
               if (file.endsWith('/')) {
-                const name = file.slice(filenamePrefix.length, -1)
-                if (path === '') {
-                  // FIXME: we should link to the site’s URL structure, not collected.press’s
-                  yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`
-                } else {
-                  // FIXME: we should link to the site’s URL structure, not collected.press’s
-                  yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
-                }
+                // const name = file.slice(filenamePrefix.length, -1)
+                // if (path === '') {
+                //   // FIXME: we should link to the site’s URL structure, not collected.press’s
+                //   yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`
+                // } else {
+                //   // FIXME: we should link to the site’s URL structure, not collected.press’s
+                //   yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
+                // }
               } else {
                 const name = file.slice(filenamePrefix.length)
                 const urlPath = (path + '/' + name).replace(/\.md$/, '')
-                // yield fetchGitHubRepoFile(ownerName, repoName, sha, path + '/' + name)
-                //   .then(markdown => renderMarkdownSecondaryArticle(markdown, urlPath, repoSource))
                 yield fetchGitHubRepoFile(
                   ownerName,
                   repoName,
@@ -258,8 +248,9 @@ export async function handleRequest(
                   path + '/' + name,
                 )
                   .then((markdown) => extractMarkdownMetadata(markdown))
-                  .then(({ title, date }) =>
-                    h(
+                  .then(({ title, date }) => ({
+                    sortKey: date instanceof Date ? date.valueOf() : title,
+                    html: h(
                       'li',
                       {},
                       date instanceof Date
@@ -270,14 +261,20 @@ export async function handleRequest(
                         )
                         : '',
                       h('a', { href: urlPath }, title),
-                    ),
-                  )
+                    )
+                  }))
               }
             }
           }.call(void 0),
         ),
       )
-    ).join('\n')
+    ).sort((a: any, b: any) => {
+      if (typeof a.sortKey === "number" && typeof b.sortKey === "number") {
+        return b.sortKey - a.sortKey
+      } else {
+        return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+      }
+    }).map((a: any) => a.html).join('\n')
     return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`
   }
 

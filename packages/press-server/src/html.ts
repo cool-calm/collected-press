@@ -2,10 +2,11 @@ import markdownIt from 'markdown-it'
 import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
 import frontMatterPlugin from 'markdown-it-front-matter'
+import { parse as parseYAML } from 'yaml'
 import { assetSHA256 } from './assets'
 
-let frontMatterCallback = (frontMatter) => {}
-export function setFrontMatterCallback(newCallback) {
+let frontMatterCallback = (frontMatter: string) => {}
+export function setFrontMatterCallback(newCallback: (frontMatter: string) => void) {
   frontMatterCallback = newCallback
 }
 
@@ -15,6 +16,21 @@ export const md = markdownIt({ html: true, linkify: true })
   .use(frontMatterPlugin, (frontMatter) => {
     frontMatterCallback(frontMatter)
   })
+
+export function renderMarkdown(markdown: string) {
+  let frontMatterSource = ''
+  setFrontMatterCallback((receivedFrontmatter: string) => {
+    frontMatterSource = receivedFrontmatter
+  })
+  const html = md.render(markdown)
+
+  let frontMatter: { title?: string; date?: string } = {}
+  try {
+    frontMatter = parseYAML(frontMatterSource) ?? {}
+  } catch { }
+
+  return Object.freeze({ html, frontMatter })
+}
 
 function streamHTML(makeSource) {
   const encoder = new TextEncoder()
@@ -96,38 +112,4 @@ export function renderStyledHTML(...contentHTML) {
     "<body>",
     ...contentHTML,
   ].filter(Boolean).join('\n')
-}
-
-/**
- *
- * @param {string} markdown
- * @param {string} path
- * @param {string} mimeType
- * @param {undefined | URLSearchParams | Map} options
- * @returns {string}
- */
-export function renderMarkdown(markdown, path, mimeType, options) {
-  const [, extension] = /.+[.]([a-z\d]+)$/.exec(path) || []
-  if (extension && extension !== 'md' && mimeType !== 'text/markdown') {
-    markdown = [`~~~~~~~~~~~~${extension}`, markdown, '~~~~~~~~~~~~'].join('\n')
-  }
-
-  let html = md.render(markdown)
-
-  if (options && options.has('theme')) {
-    html = renderStyledHTML('<article>', html, '</article>')
-  }
-
-  return html
-}
-
-/**
- *
- * @param {string} markdown
- * @param {string} type
- * @returns {string}
- */
-export function renderCodeAsMarkdown(markdown, type) {
-  markdown = [`~~~~~~~~~~~~${type}`, markdown, '~~~~~~~~~~~~'].join('\n')
-  return md.render(markdown)
 }

@@ -45,14 +45,14 @@ export async function fetchGitHubRepoFile(
  * @param {string} path
  * @returns {Promise<string[]>}
  */
-export async function listGitHubRepoFiles(ownerName, repoName, tag, path) {
+export async function listGitHubRepoFiles(ownerName: string, repoName: string, tag: string, path: string) {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON({ sourceURL, error: true }, sourceRes.status)
   }
 
-  const foundLinks = []
+  const foundLinks: Array<string> = []
   const transformedRes = new HTMLRewriter()
     .on('tr td.name a', {
       element(el) {
@@ -66,7 +66,7 @@ export async function listGitHubRepoFiles(ownerName, repoName, tag, path) {
 
   await transformedRes.text()
 
-  return foundLinks
+  return Object.freeze(foundLinks)
 }
 
 /**
