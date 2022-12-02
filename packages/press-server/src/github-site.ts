@@ -23,61 +23,16 @@ class RepoSource {
   }
 }
 
-class GitHubSiteURLBuilder {
-  static asRoot = Symbol()
-  static asSubpath = Symbol()
-
-  constructor(private _basePath: string) { }
-
-  static direct(ownerName: string, repoName: string) {
-    return new GitHubSiteURLBuilder(`/github-site/${ownerName}/${repoName}/`)
-  }
-
-  static proxied(ownerName: string, repoName: string) {
-    return new GitHubSiteURLBuilder('/')
-  }
-
-  buildPath(suffix: string) {
-    return new URL(suffix, new URL(this._basePath, 'https://example.org'))
-      .pathname
-  }
-
-  home() {
-    return this.buildPath('')
-  }
-
-  article(slug) {
-    return this.buildPath(`./${slug}`)
-  }
-
-  async adjustHTML(html) {
-    const res = new HTMLRewriter()
-      .on('a[href]', {
-        element: (element) => {
-          const rel = element.getAttribute('rel') || ''
-          element.setAttribute('rel', `${rel} noopener`.trim())
-
-          const href = element.getAttribute('href')
-
-          let url = null
-          try {
-            url = new URL(href)
-            if (url.protocol) {
-              return
-            }
-          } catch { }
-
-          let newHref = this.buildPath(href)
-          if (href === '/') {
-            newHref = this.home()
-          }
-
-          element.setAttribute('href', newHref)
-        },
-      })
-      .transform(resHTML(html))
-    return await res.text()
-  }
+async function adjustHTML(html: string) {
+  const res = new HTMLRewriter()
+    .on('a[href]', {
+      element: (element) => {
+        const rel = element.getAttribute('rel') || ''
+        element.setAttribute('rel', `${rel} noopener`.trim())
+      },
+    })
+    .transform(resHTML(html))
+  return await res.text()
 }
 
 /**
@@ -214,7 +169,7 @@ export async function serveRequest(
     `_header.md`,
   )
     .then((markdown) => md.render(markdown))
-    .then((html) => urlBuilder.adjustHTML(html))
+    .then((html) => adjustHTML(html))
     .catch(() => null)
 
   async function getMainHTML() {
@@ -229,7 +184,7 @@ export async function serveRequest(
           () => 'Add a `README.md` file to your repo to create a home page.',
         )
         .then((markdown) =>
-          renderMarkdownStandalonePage(markdown, urlBuilder.home(), repoSource),
+          renderMarkdownStandalonePage(markdown, "/", repoSource),
         )
     }
 
@@ -266,6 +221,7 @@ export async function serveRequest(
     // There been as issue where we hit a CPU limit when trying to render dozens of posts at once.
     // TODO: could fetch myself to render every article in parallel each with their own time limit.
 
+    const limit = 500
     const files = allFiles.slice(0, limit)
 
     const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
