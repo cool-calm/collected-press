@@ -139,8 +139,8 @@ async function renderMarkdownSecondaryArticle(markdown, path, repoSource) {
   return '<article>' + (await res.text()) + '</article>'
 }
 
-export async function serveRequest(ownerName: string, repoName: string, path: string) {
-  return await handleRequest(ownerName, repoName, path).catch(
+export async function serveRequest(ownerName: string, repoName: string, url: URL) {
+  return await handleRequest(ownerName, repoName, url.pathname).catch(
     (err) => {
       if (err instanceof Response) {
         return err;
