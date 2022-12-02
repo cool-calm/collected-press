@@ -22,19 +22,19 @@ export const githubRepoNameRegex = /^[-_.a-z\d]+/i
  * @returns {Promise<string>}
  */
 export async function fetchGitHubRepoFile(
-  ownerName,
-  repoName,
-  tag,
-  path,
-  transformRes = res => res.text(),
-) {
+  ownerName: string,
+  repoName: string,
+  tag: string,
+  path: string,
+  transformRes: "text" | "arrayBuffer" | "clone" = "text",
+): Promise<ReturnType<Response[typeof transformRes]>> {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON({ sourceURL, error: true }, sourceRes.status)
   }
 
-  return transformRes(sourceRes)
+  return sourceRes[transformRes]()
 }
 
 /**

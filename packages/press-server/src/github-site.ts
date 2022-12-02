@@ -144,7 +144,6 @@ export async function handleRequest(
     }
   }
 
-
   if (path.startsWith('/')) {
     path = path.substring(1);
   }
@@ -160,6 +159,16 @@ export async function handleRequest(
     return head.sha
   }
   const headSHA = await getSHA()
+
+  if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.gif') || path.endsWith('.webp')) {
+    return fetchGitHubRepoFile(
+      ownerName,
+      repoName,
+      headSHA,
+      path,
+      "clone"
+    )
+  }
 
   const headerPromise = fetchGitHubRepoFile(
     ownerName,
