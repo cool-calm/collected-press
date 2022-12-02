@@ -8,12 +8,12 @@ import {
   findHEADInRefs,
 } from './github'
 import {
+  loadAssets,
   md,
   renderStyledHTML,
   setFrontMatterCallback,
 } from './html'
-import { resCSSCached, resHTML, resPlainText, Status } from './http'
-import { loadAssets, lookupAsset } from './assets'
+import { resHTML } from './http'
 
 class RepoSource {
   constructor(public ownerName: string, public repoName: string) {}
@@ -192,16 +192,6 @@ export async function serveRequest(
   limit = 500,
 ) {
   await loadAssets()
-
-  if (path.startsWith('/assets/')) {
-    const name = path.replace("/assets/", "").split('/')[0];
-    const asset = lookupAsset(name);
-    if (asset) {
-      return resCSSCached(asset.source)
-    } else {
-      return resPlainText("Asset not found.", Status.notFound)
-    }
-  }
 
   if (path.startsWith('/')) {
     path = path.substring(1);
