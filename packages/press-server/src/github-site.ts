@@ -124,29 +124,6 @@ async function extractMarkdownMetadata(markdown) {
   }
 }
 
-/**
- * Render Markdown page content, with top-level heading changed to an <h2>
- * @param {string} markdown
- * @param {string} path
- * @param {RepoSource} repoSource
- * @returns {Promise<string>}
- */
-async function renderMarkdownSecondaryArticle(markdown, path, repoSource) {
-  let html = md.render(markdown)
-  const res = new HTMLRewriter()
-    .on('h1', {
-      element(element) {
-        element.tagName = 'a'
-        element.setAttribute('href', path)
-        element.before('<h2>', { html: true })
-        element.after('</h2>', { html: true })
-      },
-    })
-    .transform(resHTML(html))
-
-  return '<article>' + (await res.text()) + '</article>'
-}
-
 export async function serveRequest(ownerName: string, repoName: string, url: URL) {
   return await handleRequest(ownerName, repoName, url.pathname).catch(
     (err) => {
