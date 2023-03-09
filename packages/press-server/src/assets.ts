@@ -20,7 +20,7 @@ async function fetchAsset(url) {
       sha256: await crypto.subtle.digest("SHA-256", utf8Encoder.encode(source))
     }))
 }
-export async function loadAssets() {
+export async function loadAssetsIfNeeded() {
   const promises = [];
   for (const [key, url] of Object.entries(assetSources)) {
     if (!assetsCache.has(key)) {

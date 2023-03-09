@@ -14,7 +14,7 @@ import {
   renderStyledHTML,
 } from './html'
 import { resCSSCached, resHTML, resPlainText, Status } from './http'
-import { loadAssets, lookupAsset } from './assets'
+import { loadAssetsIfNeeded, lookupAsset } from './assets'
 
 class RepoSource {
   constructor(public ownerName: string, public repoName: string) { }
@@ -132,10 +132,10 @@ export async function handleRequest(
   repoName: string,
   path: string,
 ) {
-  await loadAssets()
+  await loadAssetsIfNeeded()
 
-  if (path.startsWith('/assets/')) {
-    const name = path.replace("/assets/", "").split('/')[0];
+  if (path.startsWith('/__assets/')) {
+    const name = path.replace("/__assets/", "").split('/')[0];
     const asset = lookupAsset(name);
     if (asset) {
       return resCSSCached(asset.source)

@@ -15,7 +15,8 @@ describe('Worker', () => {
     await worker.stop()
   })
 
-  it('should render /', async () => {
+  // TODO: these should load from this repo, not RoyalIcing/RoyalIcing
+  it('can render /', async () => {
     const resp = await worker.fetch('/')
     const text = await resp.text()
     expect(text).toMatch(
@@ -23,16 +24,23 @@ describe('Worker', () => {
     )
   })
 
-  it('should render /2020', async () => {
+  it('can render /2020', async () => {
     const resp = await worker.fetch('/2020')
     const text = await resp.text()
     expect(text).toMatch(`<h1>Articles</h1>`)
   })
-
-  it('should render /2020/vary-variables-not-rules-in-css-media-queries', async () => {
+  
+  it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {
     const resp = await worker.fetch('/2020/vary-variables-not-rules-in-css-media-queries')
     const text = await resp.text()
     expect(text).toMatch(`Vary variables not rules in CSS media queries`)
+  })
+
+  it('can load /__assets/tailwindcssbase/abc', async () => {
+    const resp = await worker.fetch('/__assets/tailwindcssbase/abc')
+    const text = await resp.text()
+    expect(text).toContain(`tailwindcss.com`)
+    expect(text).toContain(`MIT License`)
   })
 })
 
