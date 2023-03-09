@@ -13,28 +13,28 @@ interface Item {
 export const githubOwnerNameRegex = /^[-_a-z\d]+/i
 export const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
-/**
- *
- * @param {string} ownerName
- * @param {string} repoName
- * @param {string} tag
- * @param {string} path
- * @returns {Promise<string>}
- */
-export async function fetchGitHubRepoFile(
+export async function fetchGitHubRepoFileResponse(
   ownerName: string,
   repoName: string,
   tag: string,
-  path: string,
-  transformRes: "text" | "arrayBuffer" | "clone" = "text",
-): Promise<ReturnType<Response[typeof transformRes]>> {
+  path: string
+): Promise<Response> {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON({ sourceURL, error: true }, sourceRes.status)
   }
 
-  return sourceRes[transformRes]()
+  return sourceRes
+}
+
+export async function fetchGitHubRepoTextFile(
+  ownerName: string,
+  repoName: string,
+  tag: string,
+  path: string,
+): Promise<string> {
+  return fetchGitHubRepoFileResponse(ownerName, repoName, tag, path).then((res) => res.text())
 }
 
 /**

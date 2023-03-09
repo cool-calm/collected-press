@@ -2,7 +2,8 @@ import { parse as parseYAML } from 'yaml'
 import { parseISO, format as formatDate } from 'date-fns'
 import h from 'vhtml'
 import {
-  fetchGitHubRepoFile,
+  fetchGitHubRepoFileResponse,
+  fetchGitHubRepoTextFile,
   listGitHubRepoFiles,
   fetchGitHubRepoRefs,
   findHEADInRefs,
@@ -161,16 +162,15 @@ export async function handleRequest(
   const headSHA = await getSHA()
 
   if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.gif') || path.endsWith('.webp')) {
-    return fetchGitHubRepoFile(
+    return fetchGitHubRepoFileResponse(
       ownerName,
       repoName,
       headSHA,
-      path,
-      "clone"
-    )
+      path
+    ).then(res => res.clone())
   }
 
-  const headerPromise = fetchGitHubRepoFile(
+  const headerPromise = fetchGitHubRepoTextFile(
     ownerName,
     repoName,
     headSHA,
@@ -182,7 +182,7 @@ export async function handleRequest(
 
   async function getMainHTML() {
     if (path === '' || path === '/') {
-      return await fetchGitHubRepoFile(
+      return await fetchGitHubRepoTextFile(
         ownerName,
         repoName,
         headSHA,
@@ -197,13 +197,13 @@ export async function handleRequest(
     }
 
     const content =
-      (await fetchGitHubRepoFile(
+      (await fetchGitHubRepoTextFile(
         ownerName,
         repoName,
         headSHA,
         `${path}/README.md`,
       ).catch(() => null)) ||
-      (await fetchGitHubRepoFile(
+      (await fetchGitHubRepoTextFile(
         ownerName,
         repoName,
         headSHA,
@@ -250,11 +250,11 @@ export async function handleRequest(
               } else {
                 const name = file.slice(filenamePrefix.length)
                 const urlPath = (path + '/' + name).replace(/\.md$/, '')
-                yield fetchGitHubRepoFile(
+                yield fetchGitHubRepoTextFile(
                   ownerName,
                   repoName,
                   sha,
-                  path + '/' + name,
+                  path + '/' + name
                 )
                   .then((markdown) => extractMarkdownMetadata(markdown))
                   .then(({ title, date }) => ({
