@@ -164,13 +164,15 @@ export async function handleRequest(
   const repoSource = new RepoSource(ownerName, repoName)
 
   function loadMarkdownPartial(path: string): Promise<string | null> {
+    const type: 'html' | 'markdown' = path.endsWith(".html") ? 'html' : 'markdown'
+
     return fetchGitHubRepoTextFile(
       ownerName,
       repoName,
       headSHA,
       path,
     )
-      .then((markdown) => md.render(markdown))
+      .then((source) => type === "markdown" ? md.render(source) : source)
       .then((html) => adjustHTML(html))
       .catch(() => null)
   }
@@ -194,7 +196,7 @@ export async function handleRequest(
     ).then(res => res.clone())
   }
 
-  const htmlHeadPromise = loadMarkdownPartial('_html-head.md')
+  const htmlHeadPromise = loadMarkdownPartial('_html-head.html')
   const headerPromise = loadMarkdownPartial('_header.md')
 
   async function getMainHTML() {
