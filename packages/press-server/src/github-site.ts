@@ -155,7 +155,7 @@ export async function handleRequest(
     const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
     const head = findHEADInRefs(refsGenerator())
     if (head == null) {
-      throw Error('500 Content not found')
+      throw new Response("GitHub Repo does not have HEAD branch.", { status: 404 });
     }
     return head.sha
   }
