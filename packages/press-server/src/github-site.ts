@@ -127,6 +127,20 @@ export async function serveRequest(ownerName: string, repoName: string, url: URL
   );
 }
 
+const staticFileExtensions = [
+  'css',
+  'svg',
+  'avif',
+  'webp',
+  'png',
+  'apng',
+  'jpg',
+  'jpeg',
+  'gif',
+  'ico',
+  'eot'
+]
+
 export async function handleRequest(
   ownerName: string,
   repoName: string,
@@ -160,7 +174,7 @@ export async function handleRequest(
   }
   const headSHA = await getSHA()
 
-  if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.gif') || path.endsWith('.webp')) {
+  if (staticFileExtensions.some(extension => path.endsWith(`.${extension}`))) {
     return fetchGitHubRepoFileResponse(
       ownerName,
       repoName,

@@ -41,6 +41,14 @@ describe('Worker', () => {
     const text = await resp.text()
     expect(text).toContain(`tailwindcss.com`)
     expect(text).toContain(`MIT License`)
+  }
+  )
+  it('can load /assets/hoverlytics.jpg', async () => {
+    const resp = await worker.fetch('/assets/hoverlytics.jpg')
+    const headers = Object.fromEntries(resp.headers)
+    expect(headers["content-type"]).toEqual("image/jpeg")
+    const bytes = await resp.arrayBuffer()
+    expect(bytes.byteLength).toBeGreaterThan(1000)
   })
 })
 
