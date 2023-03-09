@@ -7,8 +7,7 @@ describe('Worker', () => {
   beforeAll(async () => {
     worker = await unstable_dev(
       __dirname + '/worker.ts',
-      {},
-      { disableExperimentalWarning: true },
+      { experimental: { disableExperimentalWarning: true } },
     )
   })
 
