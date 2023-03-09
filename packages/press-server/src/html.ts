@@ -103,7 +103,11 @@ footer[role=contentinfo] { margin-top: 3rem; padding-top: 1rem; border-top: 0.25
 </style>`,
 ];
 
-export function renderStyledHTML(...contentHTML) {
+export function defaultHTMLHead(): string {
+  return styledHTMLHeadElements().join("\n");
+}
+
+export function renderStyledHTML(...contentHTML): string {
   return [
     ...styledHTMLHeadElements(),
     "<body>",

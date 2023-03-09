@@ -5,10 +5,9 @@ describe('Worker', () => {
   let worker: UnstableDevWorker
 
   beforeAll(async () => {
-    worker = await unstable_dev(
-      __dirname + '/worker.ts',
-      { experimental: { disableExperimentalWarning: true } },
-    )
+    worker = await unstable_dev(__dirname + '/worker.ts', {
+      experimental: { disableExperimentalWarning: true },
+    })
   })
 
   afterAll(async () => {
@@ -19,6 +18,7 @@ describe('Worker', () => {
   it('can render /', async () => {
     const resp = await worker.fetch('/')
     const text = await resp.text()
+    expect(text).toContain('<!doctype html>')
     expect(text).toMatch(
       `<h1>Patrick Smith — Product Developer &amp; Design Engineer</h1>`,
     )
@@ -29,9 +29,11 @@ describe('Worker', () => {
     const text = await resp.text()
     expect(text).toMatch(`<h1>Articles</h1>`)
   })
-  
+
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {
-    const resp = await worker.fetch('/2020/vary-variables-not-rules-in-css-media-queries')
+    const resp = await worker.fetch(
+      '/2020/vary-variables-not-rules-in-css-media-queries',
+    )
     const text = await resp.text()
     expect(text).toMatch(`Vary variables not rules in CSS media queries`)
   })
@@ -41,12 +43,11 @@ describe('Worker', () => {
     const text = await resp.text()
     expect(text).toContain(`tailwindcss.com`)
     expect(text).toContain(`MIT License`)
-  }
-  )
+  })
   it('can load /assets/hoverlytics.jpg', async () => {
     const resp = await worker.fetch('/assets/hoverlytics.jpg')
     const headers = Object.fromEntries(resp.headers)
-    expect(headers["content-type"]).toEqual("image/jpeg")
+    expect(headers['content-type']).toEqual('image/jpeg')
     const bytes = await resp.arrayBuffer()
     expect(bytes.byteLength).toBeGreaterThan(1000)
   })

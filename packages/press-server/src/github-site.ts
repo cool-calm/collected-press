@@ -1,4 +1,3 @@
-import { parse as parseYAML } from 'yaml'
 import { parseISO, format as formatDate } from 'date-fns'
 import h from 'vhtml'
 import {
@@ -9,9 +8,9 @@ import {
   findHEADInRefs,
 } from './github'
 import {
+  defaultHTMLHead,
   md,
   renderMarkdown,
-  renderStyledHTML,
 } from './html'
 import { resCSSCached, resHTML, resPlainText, Status } from './http'
 import { loadAssetsIfNeeded, lookupAsset } from './assets'
@@ -164,6 +163,18 @@ export async function handleRequest(
 
   const repoSource = new RepoSource(ownerName, repoName)
 
+  function loadMarkdownPartial(path: string): Promise<string | null> {
+    return fetchGitHubRepoTextFile(
+      ownerName,
+      repoName,
+      headSHA,
+      path,
+    )
+      .then((markdown) => md.render(markdown))
+      .then((html) => adjustHTML(html))
+      .catch(() => null)
+  }
+
   async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
     const head = findHEADInRefs(refsGenerator())
@@ -183,15 +194,8 @@ export async function handleRequest(
     ).then(res => res.clone())
   }
 
-  const headerPromise = fetchGitHubRepoTextFile(
-    ownerName,
-    repoName,
-    headSHA,
-    `_header.md`,
-  )
-    .then((markdown) => md.render(markdown))
-    .then((html) => adjustHTML(html))
-    .catch(() => null)
+  const htmlHeadPromise = loadMarkdownPartial('_html-head.md')
+  const headerPromise = loadMarkdownPartial('_header.md')
 
   async function getMainHTML() {
     if (path === '' || path === '/') {
@@ -327,13 +331,16 @@ export async function handleRequest(
   ).join('\n')
 
   const mainHTML = await getMainHTML()
+  const htmlHead = (await htmlHeadPromise) || defaultHTMLHead()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
   const headerHTML = `<nav>${(await headerPromise) || md.render(navSource)
     }</nav>`
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
   const footerHTML = ``
 
-  const html = renderStyledHTML(
+  const html = [
+    htmlHead,
+    '<body>',
     '<header role=banner>',
     headerHTML,
     '</header>',
@@ -341,7 +348,7 @@ export async function handleRequest(
     typeof mainHTML === 'string' ? mainHTML : 'Not found',
     '</main>',
     footerHTML,
-  )
+  ].join("\n")
 
   return resHTML(html)
 }
