@@ -6,22 +6,19 @@ import { parse as parseYAML } from 'yaml'
 import { assetSHA256 } from './assets'
 
 let frontMatterCallback = (frontMatter: string) => {}
-export function setFrontMatterCallback(newCallback: (frontMatter: string) => void) {
-  frontMatterCallback = newCallback
-}
 
 export const md = markdownIt({ html: true, linkify: true })
   .use(highlightjsPlugin)
   .use(taskListsPlugin)
-  .use(frontMatterPlugin, (frontMatter) => {
+  .use(frontMatterPlugin, (frontMatter: string) => {
     frontMatterCallback(frontMatter)
   })
 
 export function renderMarkdown(markdown: string) {
   let frontMatterSource = ''
-  setFrontMatterCallback((receivedFrontmatter: string) => {
+  frontMatterCallback = (receivedFrontmatter: string) => {
     frontMatterSource = receivedFrontmatter
-  })
+  }
   const html = md.render(markdown)
 
   let frontMatter: { title?: string; date?: string } = {}

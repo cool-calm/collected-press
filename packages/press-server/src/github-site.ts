@@ -12,7 +12,6 @@ import {
   md,
   renderMarkdown,
   renderStyledHTML,
-  setFrontMatterCallback,
 } from './html'
 import { resCSSCached, resHTML, resPlainText, Status } from './http'
 import { loadAssets, lookupAsset } from './assets'
