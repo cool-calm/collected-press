@@ -21,7 +21,7 @@ export function renderMarkdown(markdown: string) {
   }
   const html = md.render(markdown)
 
-  let frontMatter: { title?: string; date?: string } = {}
+  let frontMatter: { title?: string; date?: string, includes?: ReadonlyArray<string> } = {}
   try {
     frontMatter = parseYAML(frontMatterSource) ?? {}
   } catch { }

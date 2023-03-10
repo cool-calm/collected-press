@@ -50,15 +50,7 @@ async function renderMarkdownStandalonePage(markdown, path, repoSource) {
   return '<article>' + (await res.text()) + '</article>'
 }
 
-/**
- * Render Markdown page content
- * @param {string} markdown
- * @param {string} path
- * @param {RepoSource} repoSource
- * @returns {Promise<string>}
- */
-async function renderMarkdownPrimaryArticle(markdown, path, repoSource) {
-  let html = md.render(markdown)
+async function renderPrimaryArticle(html: string, path: string, repoSource: RepoSource): Promise<string> {
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
@@ -229,21 +221,54 @@ export async function handleRequest(
         `${path}.md`,
       ).catch(() => null))
 
+    let paths = [path]
+
     if (typeof content === 'string') {
-      return await renderMarkdownPrimaryArticle(content, path, repoSource)
+      const { html, frontMatter } = renderMarkdown(content)
+      if (Array.isArray(frontMatter.includes)) {
+        paths = frontMatter.includes
+      } else {
+        return await renderPrimaryArticle(html, path, repoSource)
+      }
     }
 
-    const allFiles: ReadonlyArray<string> = await listGitHubRepoFiles(
-      ownerName,
-      repoName,
-      sha,
-      path + '/',
-    ).catch(() => null)
-    if (allFiles === null) {
-      return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
-    }
+    type FileInfo = { fileName: string; filePath: string; urlPath: string }
+    const allFiles: ReadonlyArray<FileInfo> = await Promise.all(Array.from(
+      function* () {
+        for (const path of paths) {
+          yield listGitHubRepoFiles(
+            ownerName,
+            repoName,
+            sha,
+            path + '/',
+          )
+          .then(absolutePaths => {
+            const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
+            return absolutePaths.map(absolutePath => {
+              const fileName = absolutePath.replace(filenamePrefix, "");
+              return {
+                fileName,
+                filePath: path + '/' + fileName,
+                urlPath: (path + '/' + fileName).replace(/\.md$/, '')
+              }
+            }) as ReadonlyArray<{ fileName: string; filePath: string; urlPath: string }>
+          })
+          .catch(() => [] as ReadonlyArray<FileInfo>)
+        }
+      }.call(undefined)
+    )).then((a: any) => a.flat())
 
-    // There been as issue where we hit a CPU limit when trying to render dozens of posts at once.
+    // const allFiles: ReadonlyArray<string> = await listGitHubRepoFiles(
+    //   ownerName,
+    //   repoName,
+    //   sha,
+    //   path + '/',
+    // ).catch(() => null)
+    // if (allFiles === null) {
+    //   return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
+    // }
+
+    // There’s been an issue where we hit a CPU limit when trying to render dozens of posts at once.
     // TODO: could fetch myself to render every article in parallel each with their own time limit.
 
     const limit = 500
@@ -251,51 +276,39 @@ export async function handleRequest(
 
     files.reverse()
 
-    const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
+    // const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
     const articlesHTML = (
       await Promise.all(
         Array.from(
           function* () {
-            for (const file of files) {
-              if (file.endsWith('/')) {
-                // const name = file.slice(filenamePrefix.length, -1)
-                // if (path === '') {
-                //   // FIXME: we should link to the site’s URL structure, not collected.press’s
-                //   yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`
-                // } else {
-                //   // FIXME: we should link to the site’s URL structure, not collected.press’s
-                //   yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
-                // }
-              } else {
-                const name = file.slice(filenamePrefix.length)
-                if (!name.endsWith('.md')) {
-                  continue;
-                }
-                
-                const urlPath = (path + '/' + name).replace(/\.md$/, '')
-                yield fetchGitHubRepoTextFile(
-                  ownerName,
-                  repoName,
-                  sha,
-                  path + '/' + name
-                )
-                  .then((markdown) => extractMarkdownMetadata(markdown))
-                  .then(({ title, date }) => ({
-                    sortKey: date instanceof Date ? date.valueOf() : title,
-                    html: h(
-                      'li',
-                      {},
-                      date instanceof Date
-                        ? h(
-                          'span',
-                          { 'data-date': true },
-                          formatDate(date, 'MMMM dd, yyyy'),
-                        )
-                        : '',
-                      h('a', { href: urlPath }, title),
-                    )
-                  }))
+            for (const { fileName, filePath, urlPath } of files) {
+              // const name = file.slice(filenamePrefix.length)
+              if (!filePath.endsWith('.md')) {
+                continue;
               }
+              
+              yield fetchGitHubRepoTextFile(
+                ownerName,
+                repoName,
+                sha,
+                filePath
+              )
+                .then((markdown) => extractMarkdownMetadata(markdown))
+                .then(({ title, date }) => ({
+                  sortKey: date instanceof Date ? date.valueOf() : title,
+                  html: h(
+                    'li',
+                    {},
+                    date instanceof Date
+                      ? h(
+                        'span',
+                        { 'data-date': true },
+                        formatDate(date, 'MMMM dd, yyyy'),
+                      )
+                      : '',
+                    h('a', { href: urlPath }, title),
+                  )
+                }))
             }
           }.call(undefined),
         ),
