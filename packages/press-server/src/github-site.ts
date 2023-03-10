@@ -232,26 +232,25 @@ export async function handleRequest(
       }
     }
 
-    type FileInfo = { fileName: string; filePath: string; urlPath: string }
+    type FileInfo = { filePath: string; urlPath: string }
     const allFiles: ReadonlyArray<FileInfo> = await Promise.all(Array.from(
       function* () {
-        for (const path of paths) {
+        for (const lookupPath of paths) {
           yield listGitHubRepoFiles(
             ownerName,
             repoName,
             sha,
-            path + '/',
+            lookupPath + '/',
           )
           .then(absolutePaths => {
-            const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
+            const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
             return absolutePaths.map(absolutePath => {
-              const fileName = absolutePath.replace(filenamePrefix, "");
+              const filePath = absolutePath.replace(absolutePrefix, "");
               return {
-                fileName,
-                filePath: path + '/' + fileName,
-                urlPath: (path + '/' + fileName).replace(/\.md$/, '')
+                filePath,
+                urlPath: filePath.replace(/\.md$/, '')
               }
-            }) as ReadonlyArray<{ fileName: string; filePath: string; urlPath: string }>
+            }) as ReadonlyArray<FileInfo>
           })
           .catch(() => [] as ReadonlyArray<FileInfo>)
         }
@@ -276,17 +275,16 @@ export async function handleRequest(
 
     files.reverse()
 
-    // const filenamePrefix = `${ownerName}/${repoName}@${sha}/${path}/`
     const articlesHTML = (
       await Promise.all(
         Array.from(
           function* () {
-            for (const { fileName, filePath, urlPath } of files) {
-              // const name = file.slice(filenamePrefix.length)
+            for (const { filePath } of files) {
               if (!filePath.endsWith('.md')) {
                 continue;
               }
               
+              const urlPath = filePath.replace(/\.md$/, '')
               yield fetchGitHubRepoTextFile(
                 ownerName,
                 repoName,

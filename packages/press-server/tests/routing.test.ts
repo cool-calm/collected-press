@@ -31,6 +31,14 @@ describe('Worker', () => {
     expect(text).toMatch(`Vary variables not rules in CSS media queries`)
   })
 
+  it('can render /blog', async () => {
+    const resp = await worker.fetch('/blog')
+    const text = await resp.text()
+    expect(text).toMatch(`<h1>Articles</h1>`)
+    expect(text).toMatch(`Vary variables not rules in CSS media queries`)
+    expect(text).toMatch(`The Missing App Economy`)
+  })
+
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {
     const resp = await worker.fetch(
       '/2020/vary-variables-not-rules-in-css-media-queries',
