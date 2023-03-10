@@ -58,7 +58,7 @@ async function renderPrimaryArticle(html: string, path: string, repoSource: Repo
         element.setAttribute('href', path)
         element.before('<h1>', { html: true })
 
-        if (repoSource.ownerName === 'RoyalIcing') {
+        if (false && repoSource.ownerName === 'RoyalIcing') {
           element.after(
             `<div style="margin-bottom: 3rem"><img src="${repoSource.profilePictureURL}" style="border-radius: 9999px; width: 36px; height: 36px; margin-right: 0.5em">Patrick Smith</div>`,
             { html: true },
