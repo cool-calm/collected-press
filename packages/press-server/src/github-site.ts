@@ -268,6 +268,10 @@ export async function handleRequest(
                 // }
               } else {
                 const name = file.slice(filenamePrefix.length)
+                if (!name.endsWith('.md')) {
+                  continue;
+                }
+                
                 const urlPath = (path + '/' + name).replace(/\.md$/, '')
                 yield fetchGitHubRepoTextFile(
                   ownerName,
