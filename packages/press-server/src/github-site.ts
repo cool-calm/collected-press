@@ -297,7 +297,7 @@ export async function handleRequest(
                   }))
               }
             }
-          }.call(void 0),
+          }.call(undefined),
         ),
       )
     ).sort((a: any, b: any) => {
