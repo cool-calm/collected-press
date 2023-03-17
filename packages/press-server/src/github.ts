@@ -22,7 +22,7 @@ export async function fetchGitHubRepoFileResponse(
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: true }, sourceRes.status)
+    throw resJSON({ sourceURL, error: `fetchGitHubRepoFileResponse ${tag} ${path}` }, sourceRes.status)
   }
 
   return sourceRes
@@ -49,7 +49,7 @@ export async function listGitHubRepoFiles(ownerName: string, repoName: string, t
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: true }, sourceRes.status)
+    throw resJSON({ sourceURL, error: `listGitHubRepoFiles ${tag} ${path}` }, sourceRes.status)
   }
 
   const foundLinks: Array<string> = []
