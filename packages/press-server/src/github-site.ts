@@ -1,4 +1,4 @@
-import { parseISO, format as formatDate } from 'date-fns'
+import { parseISO } from 'date-fns'
 import h from 'vhtml'
 import {
   fetchGitHubRepoFileResponse,
@@ -60,9 +60,13 @@ async function renderPrimaryArticle(html: string, path: string, repoSource: Repo
         element.before('<h1>', { html: true })
 
         if (typeof frontMatter.date === "string") {
-          // const date = parseISO(frontMatter.date)
+          const date = parseISO(frontMatter.date)
           element.after(
-            `<time datetime="${frontMatter.date}">${frontMatter.date}</time>`,
+            h(
+              'time',
+              { 'datetime': frontMatter.date },
+              date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            ),
             { html: true },
           )
         }
@@ -85,12 +89,14 @@ async function extractMarkdownMetadata(markdown: string) {
 
   let title: string | null = null
   let date: Date | null = null
+  let dateString: string | null = null
 
   if (typeof frontMatter.title === 'string') {
     title = frontMatter.title
   }
 
   if (typeof frontMatter.date === 'string') {
+    dateString = frontMatter.date
     try {
       date = parseISO(frontMatter.date)
     } catch { }
@@ -113,6 +119,7 @@ async function extractMarkdownMetadata(markdown: string) {
   return {
     title,
     date,
+    dateString,
   }
 }
 
@@ -302,16 +309,16 @@ export async function handleRequest(
                 filePath
               )
                 .then((markdown) => extractMarkdownMetadata(markdown))
-                .then(({ title, date }) => ({
+                .then(({ title, date, dateString }) => ({
                   sortKey: date instanceof Date ? date.valueOf() : title,
                   html: h(
                     'li',
                     {},
                     date instanceof Date
                       ? h(
-                        'span',
-                        { 'data-date': true },
-                        formatDate(date, 'MMMM dd, yyyy'),
+                        'time',
+                        { 'datetime': dateString },
+                        date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
                       )
                       : '',
                     h('a', { href: urlPath }, title),

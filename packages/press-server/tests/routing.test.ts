@@ -37,6 +37,7 @@ describe('Worker', () => {
     expect(text).toMatch(`<h1>Articles</h1>`)
     expect(text).toMatch(`Vary variables not rules in CSS media queries`)
     expect(text).toMatch(`The Missing App Economy`)
+    expect(text).toMatch(`November 24, 2020`)
   })
 
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {
@@ -45,6 +46,7 @@ describe('Worker', () => {
     )
     const text = await resp.text()
     expect(text).toMatch(`Vary variables not rules in CSS media queries`)
+    expect(text).toMatch(`November 24, 2020</time>`)
   })
 
   it('can load /__assets/tailwindcssbase/abc', async () => {
