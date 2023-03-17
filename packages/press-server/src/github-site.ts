@@ -9,6 +9,7 @@ import {
 } from './github'
 import {
   defaultHTMLHead,
+  FrontmatterProperties,
   md,
   renderMarkdown,
 } from './html'
@@ -40,7 +41,7 @@ async function adjustHTML(html: string) {
  * @param {string} markdown
  * @returns {Promise<string>}
  */
-async function renderMarkdownStandalonePage(markdown, path, repoSource) {
+async function renderMarkdownStandalonePage(markdown: string, path: string, repoSource: RepoSource) {
   let html = md.render(markdown)
   const res = new HTMLRewriter()
     .on('h1', {
@@ -50,13 +51,21 @@ async function renderMarkdownStandalonePage(markdown, path, repoSource) {
   return '<article>' + (await res.text()) + '</article>'
 }
 
-async function renderPrimaryArticle(html: string, path: string, repoSource: RepoSource): Promise<string> {
+async function renderPrimaryArticle(html: string, path: string, repoSource: RepoSource, frontMatter: FrontmatterProperties): Promise<string> {
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
         element.tagName = 'a'
         element.setAttribute('href', path)
         element.before('<h1>', { html: true })
+
+        if (typeof frontMatter.date === "string") {
+          // const date = parseISO(frontMatter.date)
+          element.after(
+            `<time datetime="${frontMatter.date}">${frontMatter.date}</time>`,
+            { html: true },
+          )
+        }
 
         if (false && repoSource.ownerName === 'RoyalIcing') {
           element.after(
@@ -229,7 +238,7 @@ export async function handleRequest(
       if (Array.isArray(frontMatter.includes)) {
         paths = frontMatter.includes
       } else {
-        return await renderPrimaryArticle(html, path, repoSource)
+        return await renderPrimaryArticle(html, path, repoSource, frontMatter)
       }
     }
 

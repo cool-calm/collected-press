@@ -14,14 +14,22 @@ export const md = markdownIt({ html: true, linkify: true })
     frontMatterCallback(frontMatter)
   })
 
-export function renderMarkdown(markdown: string) {
+export interface FrontmatterProperties {
+  title?: string
+  date?: string
+  includes?: ReadonlyArray<string>
+}
+export function renderMarkdown(markdown: string): {
+    html: string
+    frontMatter: FrontmatterProperties
+} {
   let frontMatterSource = ''
   frontMatterCallback = (receivedFrontmatter: string) => {
     frontMatterSource = receivedFrontmatter
   }
-  const html = md.render(markdown)
+  const html: string = md.render(markdown)
 
-  let frontMatter: { title?: string; date?: string, includes?: ReadonlyArray<string> } = {}
+  let frontMatter: FrontmatterProperties = {}
   try {
     frontMatter = parseYAML(frontMatterSource) ?? {}
   } catch { }
