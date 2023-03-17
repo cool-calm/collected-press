@@ -188,8 +188,9 @@ export async function handleRequest(
     ).then(res => res.clone())
   }
 
-  const htmlHeadPromise = loadMarkdownPartial('_html-head.html')
-  const headerPromise = loadMarkdownPartial('_header.md')
+  const htmlHeadPromise = loadMarkdownPartial('_html-head.html').then(html => html ?? loadMarkdownPartial('_head.html'))
+  const navPromise = loadMarkdownPartial('_header.md').then(html => html ?? loadMarkdownPartial('_nav.md'))
+  const contentinfoPromise = loadMarkdownPartial('_contentinfo.md')
 
   async function getMainHTML() {
     if (path === '' || path === '/') {
@@ -350,10 +351,10 @@ export async function handleRequest(
   const mainHTML = await getMainHTML()
   const htmlHead = (await htmlHeadPromise) || defaultHTMLHead()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
-  const headerHTML = `<nav>${(await headerPromise) || md.render(navSource)
+  const headerHTML = `<nav>${(await navPromise) || md.render(navSource)
     }</nav>`
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
-  const footerHTML = ``
+  const footerHTML = (await contentinfoPromise) || ''
 
   const html = [
     htmlHead,
