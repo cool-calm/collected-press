@@ -370,7 +370,7 @@ export async function handleRequest(
   const headerHTML = `<nav>${(await navPromise) || md.render(navSource)
     }</nav>`
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
-  const footerHTML = (await contentinfoPromise) || ''
+  const footerHTML = `<footer role="contentinfo">${(await contentinfoPromise) || ''}</footer>`
 
   const html = [
     htmlHead,
