@@ -386,7 +386,3 @@ export async function handleRequest(
 
   return resHTML(html)
 }
-
-function getRequestIsDirect(request) {
-  return request.headers.get('host') === 'collected.press'
-}
