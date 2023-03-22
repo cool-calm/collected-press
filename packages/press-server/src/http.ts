@@ -31,7 +31,7 @@ const secureHTMLHeaders = Object.freeze([
 const contentSecurityPolicyHeaders = Object.freeze([
   pair(
     'content-security-policy',
-    "default-src 'self'; img-src *; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com"
+    "default-src 'self'; font-src 'self' data:; img-src * data:; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com"
   ),
 ]);
 
@@ -43,15 +43,20 @@ export function resJSON(json, status = Status.success, headers = new Headers()) 
   headers.set('content-type', 'application/json')
   return new Response(JSON.stringify(json), { status, headers })
 }
-export function resHTML(html, status = Status.success, headers = new Headers()) {
+export function resHTML(html, status = Status.success, headers?: Headers) {
   // assignEntries(headers, pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)
   // assigning(pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)(headers)
   // assign(headers, [pair('content-type', 'text/html;charset=utf-8')], secureHTMLHeaders, contentSecurityPolicyHeaders)
 
+  const customHeaders = headers !== undefined;
+  headers = new Headers(headers);
+
   headers.set('content-type', 'text/html;charset=utf-8')
-  into(headers, secureHTMLHeaders)
-  into(headers, contentSecurityPolicyHeaders)
-  into(headers, linkHeaders)
+  if (!customHeaders) {
+    into(headers, secureHTMLHeaders)
+    into(headers, contentSecurityPolicyHeaders)
+    into(headers, linkHeaders)
+  }
   return new Response(html, { status, headers })
 }
 export function resPlainText(text, status = Status.success, headers = new Headers()) {

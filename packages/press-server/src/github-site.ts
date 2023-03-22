@@ -123,8 +123,12 @@ async function extractMarkdownMetadata(markdown: string) {
   }
 }
 
-export async function serveRequest(ownerName: string, repoName: string, url: URL) {
-  return await handleRequest(ownerName, repoName, url.pathname).catch(
+export interface ServeRequestOptions {
+  htmlHeaders?: Headers;
+}
+
+export async function serveRequest(ownerName: string, repoName: string, url: URL, options: ServeRequestOptions) {
+  return await handleRequest(ownerName, repoName, url.pathname, options ?? {}).catch(
     (err) => {
       if (err instanceof Response) {
         return err;
@@ -152,6 +156,7 @@ export async function handleRequest(
   ownerName: string,
   repoName: string,
   path: string,
+  options: ServeRequestOptions,
 ) {
   await loadAssetsIfNeeded()
 
@@ -189,7 +194,7 @@ export async function handleRequest(
     const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
     const head = findHEADInRefs(refsGenerator())
     if (head == null) {
-      throw new Response("GitHub Repo does not have HEAD branch.", { status: 404 });
+      throw resPlainText("GitHub Repo does not have HEAD branch.", Status.notFound);
     }
     return head.sha
   }
@@ -384,5 +389,5 @@ export async function handleRequest(
     footerHTML,
   ].join("\n")
 
-  return resHTML(html)
+  return resHTML(html, Status.success, options.htmlHeaders)
 }
