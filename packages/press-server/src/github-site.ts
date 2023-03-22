@@ -36,12 +36,7 @@ async function adjustHTML(html: string) {
   return await res.text()
 }
 
-/**
- * Render Markdown page content
- * @param {string} markdown
- * @returns {Promise<string>}
- */
-async function renderMarkdownStandalonePage(markdown: string, path: string, repoSource: RepoSource) {
+async function renderMarkdownStandalonePage(markdown: string) {
   let html = md.render(markdown)
   const res = new HTMLRewriter()
     .on('h1', {
@@ -225,7 +220,7 @@ export async function handleRequest(
           () => 'Add a `README.md` file to your repo to create a home page.',
         )
         .then((markdown) =>
-          renderMarkdownStandalonePage(markdown, "/", repoSource),
+          renderMarkdownStandalonePage(markdown),
         )
     }
 
