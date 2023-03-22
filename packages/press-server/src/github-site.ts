@@ -56,7 +56,7 @@ async function renderPrimaryArticle(html: string, path: string, repoSource: Repo
     .on('h1', {
       element(element) {
         element.tagName = 'a'
-        element.setAttribute('href', path)
+        element.setAttribute('href', `/${path}`)
         element.before('<h1>', { html: true })
 
         if (typeof frontMatter.date === "string") {
@@ -176,20 +176,6 @@ export async function handleRequest(
 
   const repoSource = new RepoSource(ownerName, repoName)
 
-  function loadPartial(path: string): Promise<string | null> {
-    const type: 'html' | 'markdown' = path.endsWith(".html") ? 'html' : 'markdown'
-
-    return fetchGitHubRepoTextFile(
-      ownerName,
-      repoName,
-      headSHA,
-      path,
-    )
-      .then((source) => type === "markdown" ? md.render(source) : source)
-      .then((html) => adjustHTML(html))
-      .catch(() => null)
-  }
-
   async function getSHA() {
     const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
     const head = findHEADInRefs(refsGenerator())
@@ -207,6 +193,20 @@ export async function handleRequest(
       headSHA,
       path
     ).then(res => res.clone())
+  }
+
+  function loadPartial(path: string): Promise<string | null> {
+    const type: 'html' | 'markdown' = path.endsWith(".html") ? 'html' : 'markdown'
+
+    return fetchGitHubRepoTextFile(
+      ownerName,
+      repoName,
+      headSHA,
+      path,
+    )
+      .then((source) => type === "markdown" ? md.render(source) : source)
+      .then((html) => adjustHTML(html))
+      .catch(() => null)
   }
 
   const htmlHeadPromise = loadPartial('_head.html')
