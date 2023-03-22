@@ -219,9 +219,7 @@ export async function handleRequest(
         .catch(
           () => 'Add a `README.md` file to your repo to create a home page.',
         )
-        .then((markdown) =>
-          renderMarkdownStandalonePage(markdown),
-        )
+        .then(renderMarkdownStandalonePage)
     }
 
     const content =
