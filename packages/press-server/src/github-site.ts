@@ -176,7 +176,7 @@ export async function handleRequest(
 
   const repoSource = new RepoSource(ownerName, repoName)
 
-  function loadMarkdownPartial(path: string): Promise<string | null> {
+  function loadPartial(path: string): Promise<string | null> {
     const type: 'html' | 'markdown' = path.endsWith(".html") ? 'html' : 'markdown'
 
     return fetchGitHubRepoTextFile(
@@ -209,9 +209,9 @@ export async function handleRequest(
     ).then(res => res.clone())
   }
 
-  const htmlHeadPromise = loadMarkdownPartial('_html-head.html').then(html => html ?? loadMarkdownPartial('_head.html'))
-  const navPromise = loadMarkdownPartial('_header.md').then(html => html ?? loadMarkdownPartial('_nav.md'))
-  const contentinfoPromise = loadMarkdownPartial('_contentinfo.md')
+  const htmlHeadPromise = loadPartial('_head.html')
+  const navPromise = loadPartial('_header.md').then(html => html ?? loadPartial('_nav.md'))
+  const contentinfoPromise = loadPartial('_contentinfo.md')
 
   async function getMainHTML() {
     if (path === '' || path === '/') {
