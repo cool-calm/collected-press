@@ -236,9 +236,10 @@ export async function handleRequest(
         .then(renderMarkdownStandalonePage)
     }
 
-    const content =
-      (await fetchRepoTextFile(`${path}/README.md`).catch(() => null)) ||
-      (await fetchRepoTextFile(`${path}.md`).catch(() => null))
+    const content: undefined | string = (await Promise.all([
+      fetchRepoTextFile(`${path}/README.md`).catch(() => undefined),
+      fetchRepoTextFile(`${path}.md`).catch(() => undefined)
+    ])).find(a => a !== undefined)
 
     let paths = [path]
 
