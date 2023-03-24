@@ -235,10 +235,11 @@ export async function handleRequest(
         .then(renderMarkdownStandalonePage)
     }
 
-    const content: undefined | string = (await Promise.all([
-      fetchRepoTextFile(`${path}/README.md`).catch(() => undefined),
-      fetchRepoTextFile(`${path}.md`).catch(() => undefined)
-    ])).find(a => a !== undefined)
+    // TODO: we don’t warn when both these files exist.
+    const content: null | string = await Promise.any([
+      fetchRepoTextFile(`${path}/README.md`),
+      fetchRepoTextFile(`${path}.md`),
+    ]).catch(() => null)
 
     let paths = [path]
 
@@ -341,7 +342,7 @@ export async function handleRequest(
       sha,
       path === '' ? '' : path + '/',
     ).catch(() => [])
-  
+
     const filenamePrefix = `${ownerName}/${repoName}@${sha}/`
     return Array.from(
       function* () {
@@ -364,7 +365,9 @@ export async function handleRequest(
   const mainHTML = await getMainHTML()
   const htmlHead = (await htmlHeadPromise) || defaultHTMLHead()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
-  const headerHTML = `<nav>${(await navPromise) || md.render(await fallbackNav())}</nav>`
+  const headerHTML = `<nav>${
+    (await navPromise) || md.render(await fallbackNav())
+  }</nav>`
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
   const footerHTML = `<footer role="contentinfo">${
     (await contentinfoPromise) || ''

@@ -29,7 +29,7 @@ async function fetchGitHubRepoFileFromGitHubUserContent(
   path: string
 ): Promise<Response> {
   const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${tag}/${path}`
-  console.log(sourceURL)
+  // console.log(sourceURL)
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON({ sourceURL, error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}` }, sourceRes.status)
