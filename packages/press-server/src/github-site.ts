@@ -15,7 +15,7 @@ import {
 import { resHTML, resPlainText, Status } from './http'
 
 class RepoSource {
-  constructor(public ownerName: string, public repoName: string) { }
+  constructor(public ownerName: string, public repoName: string) {}
 
   get profilePictureURL() {
     return new URL(`${this.ownerName}.png`, 'https://github.com/')
@@ -38,13 +38,18 @@ async function renderMarkdownStandalonePage(markdown: string) {
   let html = md.render(markdown)
   const res = new HTMLRewriter()
     .on('h1', {
-      element(element) { },
+      element(element) {},
     })
     .transform(resHTML(html))
   return '<article>' + (await res.text()) + '</article>'
 }
 
-async function renderPrimaryArticle(html: string, path: string, repoSource: RepoSource, frontMatter: FrontmatterProperties): Promise<string> {
+async function renderPrimaryArticle(
+  html: string,
+  path: string,
+  repoSource: RepoSource,
+  frontMatter: FrontmatterProperties,
+): Promise<string> {
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
@@ -52,13 +57,17 @@ async function renderPrimaryArticle(html: string, path: string, repoSource: Repo
         element.setAttribute('href', `/${path}`)
         element.before('<h1>', { html: true })
 
-        if (typeof frontMatter.date === "string") {
+        if (typeof frontMatter.date === 'string') {
           const date = parseISO(frontMatter.date)
           element.after(
             h(
               'time',
-              { 'datetime': frontMatter.date },
-              date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+              { datetime: frontMatter.date },
+              date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
             ),
             { html: true },
           )
@@ -92,7 +101,7 @@ async function extractMarkdownMetadata(markdown: string) {
     dateString = frontMatter.date
     try {
       date = parseISO(frontMatter.date)
-    } catch { }
+    } catch {}
   }
 
   if (title === null) {
@@ -126,15 +135,23 @@ export interface ServeRequestOptions {
   ) => Promise<Response>
 }
 
-export async function serveRequest(ownerName: string, repoName: string, url: URL, options: ServeRequestOptions) {
-  return await handleRequest(ownerName, repoName, url.pathname, options ?? {}).catch(
-    (err) => {
-      if (err instanceof Response) {
-        return err;
-      }
-      throw err;
+export async function serveRequest(
+  ownerName: string,
+  repoName: string,
+  url: URL,
+  options: ServeRequestOptions,
+) {
+  return await handleRequest(
+    ownerName,
+    repoName,
+    url.pathname,
+    options ?? {},
+  ).catch((err) => {
+    if (err instanceof Response) {
+      return err
     }
-  );
+    throw err
+  })
 }
 
 const staticFileExtensions = [
@@ -148,7 +165,7 @@ const staticFileExtensions = [
   'jpeg',
   'gif',
   'ico',
-  'eot'
+  'eot',
 ]
 
 export async function handleRequest(
@@ -158,7 +175,7 @@ export async function handleRequest(
   options: ServeRequestOptions,
 ) {
   if (path.startsWith('/')) {
-    path = path.substring(1);
+    path = path.substring(1)
   }
 
   const repoSource = new RepoSource(ownerName, repoName)
@@ -167,58 +184,52 @@ export async function handleRequest(
     const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
     const head = findHEADInRefs(refsGenerator())
     if (head == null) {
-      throw resPlainText("GitHub Repo does not have HEAD branch.", Status.notFound);
+      throw resPlainText(
+        'GitHub Repo does not have HEAD branch.',
+        Status.notFound,
+      )
     }
     return head.sha
   }
   const headSHA = await getSHA()
 
-  const fetchRepoContent = options.fetchRepoContent ?? fetchGitHubRepoFileResponse
+  const fetchRepoContent =
+    options.fetchRepoContent ?? fetchGitHubRepoFileResponse
 
-  if (staticFileExtensions.some(extension => path.endsWith(`.${extension}`))) {
-    return fetchRepoContent(
-      ownerName,
-      repoName,
-      headSHA,
-      path
-    ).then(res => res.clone())
+  if (
+    staticFileExtensions.some((extension) => path.endsWith(`.${extension}`))
+  ) {
+    return fetchRepoContent(ownerName, repoName, headSHA, path).then((res) =>
+      res.clone(),
+    )
   }
 
-  function fetchGitHubRepoTextFile(
-    ownerName: string,
-    repoName: string,
-    tag: string,
-    path: string,
-  ): Promise<string> {
-    return fetchRepoContent(ownerName, repoName, tag, path).then((res) => res.text())
+  function fetchRepoTextFile(path: string): Promise<string> {
+    return fetchRepoContent(ownerName, repoName, headSHA, path).then((res) =>
+      res.text(),
+    )
   }
 
   function loadPartial(path: string): Promise<string | null> {
-    const type: 'html' | 'markdown' = path.endsWith(".html") ? 'html' : 'markdown'
+    const type: 'html' | 'markdown' = path.endsWith('.html')
+      ? 'html'
+      : 'markdown'
 
-    return fetchGitHubRepoTextFile(
-      ownerName,
-      repoName,
-      headSHA,
-      path,
-    )
-      .then((source) => type === "markdown" ? md.render(source) : source)
+    return fetchRepoTextFile(path)
+      .then((source) => (type === 'markdown' ? md.render(source) : source))
       .then((html) => adjustHTML(html))
       .catch(() => null)
   }
 
   const htmlHeadPromise = loadPartial('_head.html')
-  const navPromise = loadPartial('_header.md').then(html => html ?? loadPartial('_nav.md'))
+  const navPromise = loadPartial('_header.md').then(
+    (html) => html ?? loadPartial('_nav.md'),
+  )
   const contentinfoPromise = loadPartial('_contentinfo.md')
 
   async function getMainHTML() {
     if (path === '' || path === '/') {
-      return await fetchGitHubRepoTextFile(
-        ownerName,
-        repoName,
-        headSHA,
-        'README.md',
-      )
+      return await fetchRepoTextFile('README.md')
         .catch(
           () => 'Add a `README.md` file to your repo to create a home page.',
         )
@@ -226,18 +237,8 @@ export async function handleRequest(
     }
 
     const content =
-      (await fetchGitHubRepoTextFile(
-        ownerName,
-        repoName,
-        headSHA,
-        `${path}/README.md`,
-      ).catch(() => null)) ||
-      (await fetchGitHubRepoTextFile(
-        ownerName,
-        repoName,
-        headSHA,
-        `${path}.md`,
-      ).catch(() => null))
+      (await fetchRepoTextFile(`${path}/README.md`).catch(() => null)) ||
+      (await fetchRepoTextFile(`${path}.md`).catch(() => null))
 
     let paths = [path]
 
@@ -251,42 +252,31 @@ export async function handleRequest(
     }
 
     type FileInfo = { filePath: string; urlPath: string }
-    const allFiles: ReadonlyArray<FileInfo> = await Promise.all(Array.from(
-      function* () {
-        for (const lookupPath of paths) {
-          yield listGitHubRepoFiles(
-            ownerName,
-            repoName,
-            sha,
-            lookupPath + '/',
-          )
-          .then(absolutePaths => {
-            const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
-            return absolutePaths.map(absolutePath => {
-              const filePath = absolutePath.replace(absolutePrefix, "");
-              return {
-                filePath,
-                urlPath: filePath.replace(/\.md$/, '')
-              }
-            }) as ReadonlyArray<FileInfo>
-          })
-          .catch(() => [] as ReadonlyArray<FileInfo>)
-        }
-      }.call(undefined)
-    )).then((a: any) => a.flat())
-
-    // const allFiles: ReadonlyArray<string> = await listGitHubRepoFiles(
-    //   ownerName,
-    //   repoName,
-    //   sha,
-    //   path + '/',
-    // ).catch(() => null)
-    // if (allFiles === null) {
-    //   return `Not found. path: ${path} repo: ${ownerName}/${repoName}@${sha}`
-    // }
-
-    // There’s been an issue where we hit a CPU limit when trying to render dozens of posts at once.
-    // TODO: could fetch myself to render every article in parallel each with their own time limit.
+    const allFiles: ReadonlyArray<FileInfo> = await Promise.all(
+      Array.from(
+        function* () {
+          for (const lookupPath of paths) {
+            yield listGitHubRepoFiles(
+              ownerName,
+              repoName,
+              sha,
+              lookupPath + '/',
+            )
+              .then((absolutePaths) => {
+                const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
+                return absolutePaths.map((absolutePath) => {
+                  const filePath = absolutePath.replace(absolutePrefix, '')
+                  return {
+                    filePath,
+                    urlPath: filePath.replace(/\.md$/, ''),
+                  }
+                }) as ReadonlyArray<FileInfo>
+              })
+              .catch(() => [] as ReadonlyArray<FileInfo>)
+          }
+        }.call(undefined),
+      ),
+    ).then((a: any) => a.flat())
 
     const limit = 500
     let files = allFiles.slice(0, limit)
@@ -299,16 +289,11 @@ export async function handleRequest(
           function* () {
             for (const { filePath } of files) {
               if (!filePath.endsWith('.md')) {
-                continue;
+                continue
               }
-              
+
               const urlPath = filePath.replace(/\.md$/, '')
-              yield fetchGitHubRepoTextFile(
-                ownerName,
-                repoName,
-                sha,
-                filePath
-              )
+              yield fetchRepoTextFile(filePath)
                 .then((markdown) => extractMarkdownMetadata(markdown))
                 .then(({ title, date, dateString }) => ({
                   sortKey: date instanceof Date ? date.valueOf() : title,
@@ -317,61 +302,73 @@ export async function handleRequest(
                     {},
                     date instanceof Date
                       ? h(
-                        'time',
-                        { 'datetime': dateString },
-                        date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                      )
+                          'time',
+                          { datetime: dateString },
+                          date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          }),
+                        )
                       : '',
                     h('a', { href: urlPath }, title),
-                  )
+                  ),
                 }))
             }
           }.call(undefined),
         ),
       )
-    ).sort((a: any, b: any) => {
-      if (typeof a.sortKey === "number" && typeof b.sortKey === "number") {
-        return b.sortKey - a.sortKey
-      } else {
-        return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
-      }
-    }).map((a: any) => a.html).join('\n')
+    )
+      .sort((a: any, b: any) => {
+        if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
+          return b.sortKey - a.sortKey
+        } else {
+          return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+        }
+      })
+      .map((a: any) => a.html)
+      .join('\n')
     return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`
   }
 
   const sha = headSHA
-  const files = await listGitHubRepoFiles(
-    ownerName,
-    repoName,
-    sha,
-    path === '' ? '' : path + '/',
-  ).catch(() => [])
-
-  const filenamePrefix = `${ownerName}/${repoName}@${sha}/`
-  const navSource = Array.from(
-    function* () {
-      for (const file of files) {
-        const name = file.slice(filenamePrefix.length, -1)
-        if (file.endsWith('/')) {
-          if (path === '') {
-            // FIXME: we should allow the site to specify the basename
-            yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`
-          } else {
-            // FIXME: we should allow the site to specify the basename
-            yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
+  // There is no test coverage for this.
+  // I‘m not sure if it’s the experience I want either.
+  async function fallbackNav() {
+    const files = await listGitHubRepoFiles(
+      ownerName,
+      repoName,
+      sha,
+      path === '' ? '' : path + '/',
+    ).catch(() => [])
+  
+    const filenamePrefix = `${ownerName}/${repoName}@${sha}/`
+    return Array.from(
+      function* () {
+        for (const file of files) {
+          const name = file.slice(filenamePrefix.length, -1)
+          if (file.endsWith('/')) {
+            if (path === '') {
+              // FIXME: we should allow the site to specify the basename
+              yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`
+            } else {
+              // FIXME: we should allow the site to specify the basename
+              yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
+            }
           }
         }
-      }
-    }.call(void 0),
-  ).join('\n')
+      }.call(void 0),
+    ).join('\n')
+  }
 
   const mainHTML = await getMainHTML()
   const htmlHead = (await htmlHeadPromise) || defaultHTMLHead()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
-  const headerHTML = `<nav>${(await navPromise) || md.render(navSource)
-    }</nav>`
+  const headerHTML = `<nav>${(await navPromise) || md.render(await fallbackNav())}</nav>`
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
-  const footerHTML = `<footer role="contentinfo">${(await contentinfoPromise) || ''}</footer>`
+  const footerHTML = `<footer role="contentinfo">${
+    (await contentinfoPromise) || ''
+  }</footer>`
 
   const html = [
     htmlHead,
@@ -383,7 +380,7 @@ export async function handleRequest(
     typeof mainHTML === 'string' ? mainHTML : 'Not found',
     '</main>',
     footerHTML,
-  ].join("\n")
+  ].join('\n')
 
   return resHTML(html, Status.success, options.htmlHeaders)
 }
