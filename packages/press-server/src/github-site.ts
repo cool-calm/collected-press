@@ -2,7 +2,6 @@ import { parseISO } from 'date-fns'
 import h from 'vhtml'
 import {
   fetchGitHubRepoFileResponse,
-  fetchGitHubRepoTextFile,
   listGitHubRepoFiles,
   fetchGitHubRepoRefs,
   findHEADInRefs,
@@ -188,6 +187,15 @@ export async function handleRequest(
       headSHA,
       path
     ).then(res => res.clone())
+  }
+
+  function fetchGitHubRepoTextFile(
+    ownerName: string,
+    repoName: string,
+    tag: string,
+    path: string,
+  ): Promise<string> {
+    return fetchGitHubRepoFileResponse(ownerName, repoName, tag, path).then((res) => res.text())
   }
 
   function loadPartial(path: string): Promise<string | null> {

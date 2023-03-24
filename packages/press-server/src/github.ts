@@ -1,6 +1,6 @@
 import { resJSON } from './http'
 
-interface Item {
+interface RefItem {
   ref: string
   oid: string
   target?: string
@@ -28,24 +28,7 @@ export async function fetchGitHubRepoFileResponse(
   return sourceRes
 }
 
-export async function fetchGitHubRepoTextFile(
-  ownerName: string,
-  repoName: string,
-  tag: string,
-  path: string,
-): Promise<string> {
-  return fetchGitHubRepoFileResponse(ownerName, repoName, tag, path).then((res) => res.text())
-}
-
-/**
- *
- * @param {string} ownerName
- * @param {string} repoName
- * @param {string} tag
- * @param {string} path
- * @returns {Promise<string[]>}
- */
-export async function listGitHubRepoFiles(ownerName: string, repoName: string, tag: string, path: string) {
+export async function listGitHubRepoFiles(ownerName: string, repoName: string, tag: string, path: string): Promise<ReadonlyArray<string>> {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
@@ -69,13 +52,7 @@ export async function listGitHubRepoFiles(ownerName: string, repoName: string, t
   return Object.freeze(foundLinks)
 }
 
-/**
- *
- * @param {string} ownerName
- * @param {string} repoName
- * @returns {Promise<Array<string>>}
- */
-export async function fetchGitHubRepoRefs(ownerName, repoName) {
+export async function fetchGitHubRepoRefs(ownerName: string, repoName: string): Promise<() => Generator<Readonly<RefItem>, void, unknown>> {
   // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/models/GitPktLine.js
   // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/api/listServerRefs.js
   const url = `https://github.com/${ownerName}/${repoName}.git/info/refs?service=git-upload-pack`
@@ -106,7 +83,7 @@ export async function fetchGitHubRepoRefs(ownerName, repoName) {
 
       const [ref] = refRaw.split('\u0000')
 
-      const r: Item = { ref, oid }
+      const r: RefItem = { ref, oid }
       // r.attrs = attrs;
       for (const attr of attrs) {
         const [name, value] = attr.split(':')
@@ -127,7 +104,7 @@ export async function fetchGitHubRepoRefs(ownerName, repoName) {
   }
 }
 
-export function findHEADInRefs(refsIterable) {
+export function findHEADInRefs(refsIterable: Iterable<RefItem>): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
   for (const line of refsIterable) {
     if (line.HEADRef) {
       return { sha: line.oid, HEADRef: line.HEADRef, branch: line.HEADRef.split('/').at(-1) }
@@ -137,7 +114,7 @@ export function findHEADInRefs(refsIterable) {
   return null
 }
 
-export function findBranchInRefs(refsIterable, branch) {
+export function findBranchInRefs(refsIterable: Iterable<RefItem>, branch: string): null | Readonly<{ sha: string }> {
   for (const line of refsIterable) {
     if (line.ref === `refs/heads/${branch}`) {
       return { sha: line.oid }
@@ -146,14 +123,7 @@ export function findBranchInRefs(refsIterable, branch) {
   return null
 }
 
-/**
- *
- * @param {string} ownerName
- * @param {string} gistID
- * @param {string} path
- * @returns {Promise<string>}
- */
-export async function fetchGitHubGistFile(ownerName, gistID, path = '') {
+export async function fetchGitHubGistFile(ownerName: string, gistID: string, path = ''): Promise<string> {
   const sourceURL = `https://gist.githubusercontent.com/${ownerName}/${gistID}/raw/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
