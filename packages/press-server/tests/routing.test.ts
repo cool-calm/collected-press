@@ -56,6 +56,14 @@ describe('Worker', () => {
     const bytes = await resp.arrayBuffer()
     expect(bytes.byteLength).toBeGreaterThan(1000)
   })
+
+  it('can load /robots.txt', async () => {
+    const resp = await worker.fetch('/robots.txt')
+    const headers = Object.fromEntries(resp.headers)
+    expect(headers['content-type']).toContain('text/plain')
+    const text = await resp.text()
+    expect(text).toContain("User-agent")
+  })
 })
 
 // beforeAll(() => {

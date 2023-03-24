@@ -155,6 +155,7 @@ export async function serveRequest(
 }
 
 const staticFileExtensions = [
+  'txt',
   'css',
   'svg',
   'avif',
