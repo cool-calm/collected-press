@@ -3,7 +3,6 @@ import highlightjsPlugin from 'markdown-it-highlightjs'
 import taskListsPlugin from 'markdown-it-task-lists'
 import frontMatterPlugin from 'markdown-it-front-matter'
 import { parse as parseYAML } from 'yaml'
-import { assetSHA256 } from './assets'
 
 let frontMatterCallback = (frontMatter: string) => {}
 
@@ -68,8 +67,8 @@ const styledHTMLHeadElements = () => [
   `<meta charset=utf-8>`,
   `<meta name=viewport content="width=device-width, initial-scale=1.0">`,
   // '<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">',
-  `<link href="/__assets/tailwindcssbase/${assetSHA256("tailwindcssbase")}.css" rel="stylesheet">`,
-  `<link href="/__assets/night-owl/${assetSHA256("night-owl")}.css" rel="stylesheet">`,
+  `<link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css" rel="stylesheet">`,
+  `<link href="https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">`,
   // '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@^2/dist/base.min.css" rel="stylesheet">',
   // '<link href="https://cdn.jsdelivr.net/npm/highlight.js@11.2.0/styles/night-owl.css" rel="stylesheet">',
   // '<script src="https://cdn.usefathom.com/script.js" data-site="NSVCNPFP" defer></script>',

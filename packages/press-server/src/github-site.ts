@@ -12,8 +12,7 @@ import {
   md,
   renderMarkdown,
 } from './html'
-import { resCSSCached, resHTML, resPlainText, Status } from './http'
-import { loadAssetsIfNeeded, lookupAsset } from './assets'
+import { resHTML, resPlainText, Status } from './http'
 
 class RepoSource {
   constructor(public ownerName: string, public repoName: string) { }
@@ -158,19 +157,6 @@ export async function handleRequest(
   path: string,
   options: ServeRequestOptions,
 ) {
-  await loadAssetsIfNeeded()
-
-  // TODO: remove at some point, just load from a public CDN? Or proxy all /some.cdn.com/* paths.
-  if (path.startsWith('/__assets/')) {
-    const name = path.replace("/__assets/", "").split('/')[0];
-    const asset = lookupAsset(name);
-    if (asset) {
-      return resCSSCached(asset.source)
-    } else {
-      return resPlainText("Asset not found: " + path, Status.notFound)
-    }
-  }
-
   if (path.startsWith('/')) {
     path = path.substring(1);
   }

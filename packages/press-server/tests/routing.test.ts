@@ -49,12 +49,6 @@ describe('Worker', () => {
     expect(text).toMatch(`November 24, 2020</time>`)
   })
 
-  it('can load /__assets/tailwindcssbase/abc', async () => {
-    const resp = await worker.fetch('/__assets/tailwindcssbase/abc')
-    const text = await resp.text()
-    expect(text).toContain(`tailwindcss.com`)
-    expect(text).toContain(`MIT License`)
-  })
   it('can load /projects/hoverlytics.jpg', async () => {
     const resp = await worker.fetch('/projects/hoverlytics.jpg')
     const headers = Object.fromEntries(resp.headers)
