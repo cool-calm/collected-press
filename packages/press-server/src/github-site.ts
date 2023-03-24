@@ -223,9 +223,7 @@ export async function handleRequest(
   }
 
   const htmlHeadPromise = loadPartial('_head.html')
-  const navPromise = loadPartial('_header.md').then(
-    (html) => html ?? loadPartial('_nav.md'),
-  )
+  const navPromise = loadPartial('_nav.md')
   const contentinfoPromise = loadPartial('_contentinfo.md')
 
   async function getMainHTML() {
