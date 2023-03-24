@@ -118,7 +118,13 @@ async function extractMarkdownMetadata(markdown: string) {
 }
 
 export interface ServeRequestOptions {
-  htmlHeaders?: Headers;
+  htmlHeaders?: Headers
+  fetchRepoContent?: (
+    ownerName: string,
+    repoName: string,
+    tag: string,
+    path: string,
+  ) => Promise<Response>
 }
 
 export async function serveRequest(ownerName: string, repoName: string, url: URL, options: ServeRequestOptions) {
@@ -154,6 +160,7 @@ export async function handleRequest(
 ) {
   await loadAssetsIfNeeded()
 
+  // TODO: remove at some point, just load from a public CDN? Or proxy all /some.cdn.com/* paths.
   if (path.startsWith('/__assets/')) {
     const name = path.replace("/__assets/", "").split('/')[0];
     const asset = lookupAsset(name);
@@ -180,8 +187,10 @@ export async function handleRequest(
   }
   const headSHA = await getSHA()
 
+  const fetchRepoContent = options.fetchRepoContent ?? fetchGitHubRepoFileResponse
+
   if (staticFileExtensions.some(extension => path.endsWith(`.${extension}`))) {
-    return fetchGitHubRepoFileResponse(
+    return fetchRepoContent(
       ownerName,
       repoName,
       headSHA,
@@ -195,7 +204,7 @@ export async function handleRequest(
     tag: string,
     path: string,
   ): Promise<string> {
-    return fetchGitHubRepoFileResponse(ownerName, repoName, tag, path).then((res) => res.text())
+    return fetchRepoContent(ownerName, repoName, tag, path).then((res) => res.text())
   }
 
   function loadPartial(path: string): Promise<string | null> {

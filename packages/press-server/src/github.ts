@@ -19,10 +19,34 @@ export async function fetchGitHubRepoFileResponse(
   tag: string,
   path: string
 ): Promise<Response> {
+  return fetchGitHubRepoFileFromGitHubUserContent(ownerName, repoName, tag, path)
+}
+
+async function fetchGitHubRepoFileFromGitHubUserContent(
+  ownerName: string,
+  repoName: string,
+  tag: string,
+  path: string
+): Promise<Response> {
+  const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${tag}/${path}`
+  const sourceRes = await fetch(sourceURL)
+  if (sourceRes.status >= 400) {
+    throw resJSON({ sourceURL, error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}` }, sourceRes.status)
+  }
+
+  return sourceRes
+}
+
+async function fetchGitHubRepoFileFromJsdelivr(
+  ownerName: string,
+  repoName: string,
+  tag: string,
+  path: string
+): Promise<Response> {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: `fetchGitHubRepoFileResponse ${tag} ${path}` }, sourceRes.status)
+    throw resJSON({ sourceURL, error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}` }, sourceRes.status)
   }
 
   return sourceRes
