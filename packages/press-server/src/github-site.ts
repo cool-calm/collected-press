@@ -12,15 +12,7 @@ import {
   md,
   renderMarkdown,
 } from './html'
-import { resHTML, resPlainText, Status } from './http'
-
-class RepoSource {
-  constructor(public ownerName: string, public repoName: string) {}
-
-  get profilePictureURL() {
-    return new URL(`${this.ownerName}.png`, 'https://github.com/')
-  }
-}
+import { resHTML, Status } from './http'
 
 async function adjustHTML(html: string) {
   const res = new HTMLRewriter()
@@ -44,10 +36,14 @@ async function renderMarkdownStandalonePage(markdown: string) {
   return '<article>' + (await res.text()) + '</article>'
 }
 
+function gitHubProfilePictureURL(ownerName: string) {
+  return new URL(`${ownerName}.png`, 'https://github.com/')
+}
+
 async function renderPrimaryArticle(
   html: string,
   path: string,
-  repoSource: RepoSource,
+  repoSource: GitHubRepoSource,
   frontMatter: FrontmatterProperties,
 ): Promise<string> {
   const res = new HTMLRewriter()
@@ -75,7 +71,9 @@ async function renderPrimaryArticle(
 
         if (false && repoSource.ownerName === 'RoyalIcing') {
           element.after(
-            `<div style="margin-bottom: 3rem"><img src="${repoSource.profilePictureURL}" style="border-radius: 9999px; width: 36px; height: 36px; margin-right: 0.5em">Patrick Smith</div>`,
+            `<div style="margin-bottom: 3rem"><img src="${gitHubProfilePictureURL(
+              repoSource.ownerName,
+            )}" style="border-radius: 9999px; width: 36px; height: 36px; margin-right: 0.5em">Patrick Smith</div>`,
             { html: true },
           )
         }
@@ -126,6 +124,8 @@ async function extractMarkdownMetadata(markdown: string) {
 }
 
 export interface ServeRequestOptions {
+  commitSHA?: string
+  treatAsStatic?: boolean
   htmlHeaders?: Headers
   fetchRepoContent?: (
     ownerName: string,
@@ -135,23 +135,51 @@ export interface ServeRequestOptions {
   ) => Promise<Response>
 }
 
+export interface GitHubRepoSource {
+  readonly ownerName: string
+  readonly repoName: string
+  pathAppearsStatic(path: string): boolean
+  fetchHeadSHA(): Promise<null | string>
+  serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>
+}
+
+export function sourceFromGitHubRepo(
+  ownerName: string,
+  repoName: string,
+): GitHubRepoSource {
+  return Object.freeze({
+    ownerName: ownerName,
+    repoName: repoName,
+    pathAppearsStatic(path: string) {
+      return staticFileExtensions.some((extension) =>
+        path.endsWith(`.${extension}`),
+      )
+    },
+    async fetchHeadSHA() {
+      const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
+      const head = findHEADInRefs(refsGenerator())
+      return head === null ? null : head.sha
+    },
+    async serveURL(url: URL, options: ServeRequestOptions): Promise<Response> {
+      return await handleRequest(this, url.pathname, options ?? {}).catch(
+        (err) => {
+          if (err instanceof Response) {
+            return err
+          }
+          throw err
+        },
+      )
+    },
+  })
+}
+
 export async function serveRequest(
   ownerName: string,
   repoName: string,
   url: URL,
-  options: ServeRequestOptions,
+  options?: ServeRequestOptions,
 ) {
-  return await handleRequest(
-    ownerName,
-    repoName,
-    url.pathname,
-    options ?? {},
-  ).catch((err) => {
-    if (err instanceof Response) {
-      return err
-    }
-    throw err
-  })
+  return sourceFromGitHubRepo(ownerName, repoName).serveURL(url, options)
 }
 
 const staticFileExtensions = [
@@ -170,8 +198,7 @@ const staticFileExtensions = [
 ]
 
 export async function handleRequest(
-  ownerName: string,
-  repoName: string,
+  repoSource: GitHubRepoSource,
   path: string,
   options: ServeRequestOptions,
 ) {
@@ -179,27 +206,14 @@ export async function handleRequest(
     path = path.substring(1)
   }
 
-  const repoSource = new RepoSource(ownerName, repoName)
-
-  async function getSHA() {
-    const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
-    const head = findHEADInRefs(refsGenerator())
-    if (head == null) {
-      throw resPlainText(
-        'GitHub Repo does not have HEAD branch.',
-        Status.notFound,
-      )
-    }
-    return head.sha
-  }
-  const headSHA = await getSHA()
+  const { ownerName, repoName } = repoSource
+  const headSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA())
 
   const fetchRepoContent =
     options.fetchRepoContent ?? fetchGitHubRepoFileResponse
 
-  if (
-    staticFileExtensions.some((extension) => path.endsWith(`.${extension}`))
-  ) {
+  const treatAsStatic = options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
+  if (treatAsStatic) {
     return fetchRepoContent(ownerName, repoName, headSHA, path).then((res) =>
       res.clone(),
     )
