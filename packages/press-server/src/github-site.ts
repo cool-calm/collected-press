@@ -157,6 +157,9 @@ export function sourceFromGitHubRepo(
     },
     expectedMimeTypeForPath(path: string): string | undefined {
       const extension = path.match(/\.[0-9a-z]+$/)?.at(1)
+      if (extension === undefined) {
+        return 'text/html;charset=utf-8'
+      }
       return fileExtensionsToMimeTypes.get(extension)
     },
     async fetchHeadSHA() {
@@ -198,7 +201,7 @@ const fileExtensionsToMimeTypes = new Map([
   ['jpeg', 'image/jpeg'],
   ['gif', 'image/gif'],
   ['ico', 'image/x-icon'],
-  ['eot', 'application/vnd.ms-fontobject']
+  ['eot', 'application/vnd.ms-fontobject'],
 ])
 
 export async function handleRequest(
@@ -216,7 +219,8 @@ export async function handleRequest(
   const fetchRepoContent =
     options.fetchRepoContent ?? fetchGitHubRepoFileResponse
 
-  const treatAsStatic = options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
+  const treatAsStatic =
+    options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
   if (treatAsStatic) {
     return fetchRepoContent(ownerName, repoName, headSHA, path).then((res) =>
       res.clone(),
