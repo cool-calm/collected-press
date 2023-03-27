@@ -64,6 +64,14 @@ describe('Worker', () => {
     const text = await resp.text()
     expect(text).toContain("User-agent")
   })
+
+  it('can load /fonts/728649/97244AA2CF2CCFB1E.css', async () => {
+    const resp = await worker.fetch('/fonts/728649/97244AA2CF2CCFB1E.css')
+    const headers = Object.fromEntries(resp.headers)
+    expect(headers['content-type']).toContain('text/css')
+    const text = await resp.text()
+    expect(text).toContain("@font-face")
+  })
 })
 
 // beforeAll(() => {
