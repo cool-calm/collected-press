@@ -186,21 +186,6 @@ export async function serveRequest(
   return sourceFromGitHubRepo(ownerName, repoName).serveURL(url, options)
 }
 
-const staticFileExtensions = [
-  'txt',
-  'css',
-  'svg',
-  'avif',
-  'webp',
-  'png',
-  'apng',
-  'jpg',
-  'jpeg',
-  'gif',
-  'ico',
-  'eot',
-]
-
 const fileExtensionsToMimeTypes = new Map([
   ['txt', 'text/plain;charset=utf-8'],
   ['css', 'text/css;charset=utf-8'],
