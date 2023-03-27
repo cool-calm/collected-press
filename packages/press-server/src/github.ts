@@ -37,9 +37,12 @@ async function fetchGitHubRepoFileFromGitHubUserContent(
 
   if (path.endsWith('.css')) {
     // GitHub sends back a content-type of text/plain, so we change to text/css.
-    const res = sourceRes.clone()
-    res.headers.set('content-type', 'text/css;charset=utf-8')
-    return res
+    const headers = new Headers(sourceRes.headers);
+    headers.set('content-type', 'text/css;charset=utf-8')
+    return new Response(await sourceRes.text(), {
+      status: sourceRes.status,
+      headers
+    })
   }
 
   return sourceRes
