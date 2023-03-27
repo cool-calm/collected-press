@@ -1,1 +1,1 @@
-export { serveRequest } from "./github-site";
+export { serveRequest, sourceFromGitHubRepo } from "./github-site";
