@@ -139,6 +139,7 @@ export interface GitHubRepoSource {
   readonly ownerName: string
   readonly repoName: string
   pathAppearsStatic(path: string): boolean
+  expectedMimeTypeForPath(path: string): string | undefined
   fetchHeadSHA(): Promise<null | string>
   serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>
 }
@@ -151,9 +152,12 @@ export function sourceFromGitHubRepo(
     ownerName: ownerName,
     repoName: repoName,
     pathAppearsStatic(path: string) {
-      return staticFileExtensions.some((extension) =>
-        path.endsWith(`.${extension}`),
-      )
+      const extension = path.match(/\.[0-9a-z]+$/)?.at(1)
+      return fileExtensionsToMimeTypes.has(extension)
+    },
+    expectedMimeTypeForPath(path: string): string | undefined {
+      const extension = path.match(/\.[0-9a-z]+$/)?.at(1)
+      return fileExtensionsToMimeTypes.get(extension)
     },
     async fetchHeadSHA() {
       const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
@@ -196,6 +200,21 @@ const staticFileExtensions = [
   'ico',
   'eot',
 ]
+
+const fileExtensionsToMimeTypes = new Map([
+  ['txt', 'text/plain;charset=utf-8'],
+  ['css', 'text/css;charset=utf-8'],
+  ['svg', 'image/svg+xml'],
+  ['avif', 'image/avif'],
+  ['webp', 'image/webp'],
+  ['png', 'image/png'],
+  ['apng', 'image/apng'],
+  ['jpg', 'image/jpeg'],
+  ['jpeg', 'image/jpeg'],
+  ['gif', 'image/gif'],
+  ['ico', 'image/x-icon'],
+  ['eot', 'application/vnd.ms-fontobject']
+])
 
 export async function handleRequest(
   repoSource: GitHubRepoSource,
