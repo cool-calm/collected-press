@@ -157,7 +157,7 @@ export function sourceFromGitHubRepo(
     },
     expectedMimeTypeForPath(path: string): string | undefined {
       const extension = path.match(/\.[0-9a-z]+$/)?.at(1)
-      if (extension === undefined) {
+      if (extension == undefined) {
         return 'text/html;charset=utf-8'
       }
       return fileExtensionsToMimeTypes.get(extension)
