@@ -144,6 +144,10 @@ export interface GitHubRepoSource {
   serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>
 }
 
+function getPathFileExtension(path: string): string | undefined {
+  return path.match(/\.([0-9a-z]+)$/)?.at(1)
+}
+
 export function sourceFromGitHubRepo(
   ownerName: string,
   repoName: string,
@@ -152,11 +156,11 @@ export function sourceFromGitHubRepo(
     ownerName: ownerName,
     repoName: repoName,
     pathAppearsStatic(path: string) {
-      const extension = path.match(/\.[0-9a-z]+$/)?.at(1)
+      const extension = getPathFileExtension(path)
       return fileExtensionsToMimeTypes.has(extension)
     },
     expectedMimeTypeForPath(path: string): string | undefined {
-      const extension = path.match(/\.[0-9a-z]+$/)?.at(1)
+      const extension = getPathFileExtension(path)
       if (extension == undefined) {
         return 'text/html;charset=utf-8'
       }
