@@ -218,7 +218,7 @@ export async function handleRequest(
   }
 
   const { ownerName, repoName } = repoSource
-  const headSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  const sha = await (options.commitSHA ?? repoSource.fetchHeadSHA())
 
   const fetchRepoContent =
     options.fetchRepoContent ?? fetchGitHubRepoFileResponse
@@ -226,13 +226,13 @@ export async function handleRequest(
   const treatAsStatic =
     options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
   if (treatAsStatic) {
-    return fetchRepoContent(ownerName, repoName, headSHA, path).then((res) =>
+    return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.clone(),
     )
   }
 
   function fetchRepoTextFile(path: string): Promise<string> {
-    return fetchRepoContent(ownerName, repoName, headSHA, path).then((res) =>
+    return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.text(),
     )
   }
@@ -358,7 +358,6 @@ export async function handleRequest(
     return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`
   }
 
-  const sha = headSHA
   // There is no test coverage for this.
   // I‘m not sure if it’s the experience I want either.
   async function fallbackNav() {
