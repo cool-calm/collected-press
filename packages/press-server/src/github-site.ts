@@ -113,6 +113,7 @@ async function extractMarkdownMetadata(markdown: string) {
       .transform(resHTML(html))
     await res.text()
 
+    foundTitle = foundTitle.replace("&amp;", "&")
     title = foundTitle.trim()
   }
 
