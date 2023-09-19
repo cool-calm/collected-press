@@ -66,6 +66,14 @@ describe('Worker', () => {
     expect(text).toContain("User-agent")
   })
 
+  it('can load /resume.pdf', async () => {
+    const resp = await worker.fetch('/resume.pdf')
+    const headers = Object.fromEntries(resp.headers)
+    expect(headers['content-type']).toContain('application/pdf')
+    const text = await resp.text()
+    expect(text).toMatch(/^%PDF/)
+  })
+
   it('can load /fonts/728649/97244AA2CF2CCFB1E.css', async () => {
     const resp = await worker.fetch('/fonts/728649/97244AA2CF2CCFB1E.css')
     const headers = Object.fromEntries(resp.headers)

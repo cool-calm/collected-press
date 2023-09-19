@@ -17,31 +17,51 @@ export async function fetchGitHubRepoFileResponse(
   ownerName: string,
   repoName: string,
   tag: string,
-  path: string
+  path: string,
 ): Promise<Response> {
-  return fetchGitHubRepoFileFromGitHubUserContent(ownerName, repoName, tag, path)
+  return fetchGitHubRepoFileFromGitHubUserContent(
+    ownerName,
+    repoName,
+    tag,
+    path,
+  )
 }
 
 async function fetchGitHubRepoFileFromGitHubUserContent(
   ownerName: string,
   repoName: string,
   tag: string,
-  path: string
+  path: string,
 ): Promise<Response> {
   const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${tag}/${path}`
   // console.log(sourceURL)
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}` }, sourceRes.status)
+    throw resJSON(
+      {
+        sourceURL,
+        error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
+      },
+      sourceRes.status,
+    )
   }
 
+  let newContentType: string | undefined
+
   if (path.endsWith('.css')) {
-    // GitHub sends back a content-type of text/plain, so we change to text/css.
-    const headers = new Headers(sourceRes.headers);
-    headers.set('content-type', 'text/css;charset=utf-8')
-    return new Response(await sourceRes.text(), {
+    // GitHub sends back a content-type of text/plain.
+    newContentType = 'text/css;charset=utf-8'
+  } else if (path.endsWith('.pdf')) {
+    // GitHub sends back a content-type of application/octet-stream.
+    newContentType = 'application/pdf'
+  }
+
+  if (newContentType) {
+    const headers = new Headers(sourceRes.headers)
+    headers.set('content-type', newContentType)
+    return new Response(await sourceRes.arrayBuffer(), {
       status: sourceRes.status,
-      headers
+      headers,
     })
   }
 
@@ -52,22 +72,36 @@ async function fetchGitHubRepoFileFromJsdelivr(
   ownerName: string,
   repoName: string,
   tag: string,
-  path: string
+  path: string,
 ): Promise<Response> {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}` }, sourceRes.status)
+    throw resJSON(
+      {
+        sourceURL,
+        error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
+      },
+      sourceRes.status,
+    )
   }
 
   return sourceRes
 }
 
-export async function listGitHubRepoFiles(ownerName: string, repoName: string, tag: string, path: string): Promise<ReadonlyArray<string>> {
+export async function listGitHubRepoFiles(
+  ownerName: string,
+  repoName: string,
+  tag: string,
+  path: string,
+): Promise<ReadonlyArray<string>> {
   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: `listGitHubRepoFiles ${tag} ${path}` }, sourceRes.status)
+    throw resJSON(
+      { sourceURL, error: `listGitHubRepoFiles ${tag} ${path}` },
+      sourceRes.status,
+    )
   }
 
   const foundLinks: Array<string> = []
@@ -87,7 +121,10 @@ export async function listGitHubRepoFiles(ownerName: string, repoName: string, t
   return Object.freeze(foundLinks)
 }
 
-export async function fetchGitHubRepoRefs(ownerName: string, repoName: string): Promise<() => Generator<Readonly<RefItem>, void, unknown>> {
+export async function fetchGitHubRepoRefs(
+  ownerName: string,
+  repoName: string,
+): Promise<() => Generator<Readonly<RefItem>, void, unknown>> {
   // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/models/GitPktLine.js
   // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/api/listServerRefs.js
   const url = `https://github.com/${ownerName}/${repoName}.git/info/refs?service=git-upload-pack`
@@ -139,17 +176,26 @@ export async function fetchGitHubRepoRefs(ownerName: string, repoName: string): 
   }
 }
 
-export function findHEADInRefs(refsIterable: Iterable<RefItem>): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
+export function findHEADInRefs(
+  refsIterable: Iterable<RefItem>,
+): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
   for (const line of refsIterable) {
     if (line.HEADRef) {
-      return { sha: line.oid, HEADRef: line.HEADRef, branch: line.HEADRef.split('/').at(-1) }
+      return {
+        sha: line.oid,
+        HEADRef: line.HEADRef,
+        branch: line.HEADRef.split('/').at(-1),
+      }
     }
     break
   }
   return null
 }
 
-export function findBranchInRefs(refsIterable: Iterable<RefItem>, branch: string): null | Readonly<{ sha: string }> {
+export function findBranchInRefs(
+  refsIterable: Iterable<RefItem>,
+  branch: string,
+): null | Readonly<{ sha: string }> {
   for (const line of refsIterable) {
     if (line.ref === `refs/heads/${branch}`) {
       return { sha: line.oid }
@@ -158,7 +204,11 @@ export function findBranchInRefs(refsIterable: Iterable<RefItem>, branch: string
   return null
 }
 
-export async function fetchGitHubGistFile(ownerName: string, gistID: string, path = ''): Promise<string> {
+export async function fetchGitHubGistFile(
+  ownerName: string,
+  gistID: string,
+  path = '',
+): Promise<string> {
   const sourceURL = `https://gist.githubusercontent.com/${ownerName}/${gistID}/raw/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
