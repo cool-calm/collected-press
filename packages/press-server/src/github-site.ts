@@ -207,6 +207,7 @@ const fileExtensionsToMimeTypes = new Map([
   ['gif', 'image/gif'],
   ['ico', 'image/x-icon'],
   ['eot', 'application/vnd.ms-fontobject'],
+  ['pdf', 'application/pdf'],
 ])
 
 export async function handleRequest(
