@@ -58,6 +58,13 @@ describe('Worker', () => {
     expect(bytes.byteLength).toBeGreaterThan(1000)
   })
 
+  it('can render 404 not found', async () => {
+    const resp = await worker.fetch('/foo')
+    const text = await resp.text()
+    expect(resp.status).toBe(404)
+    expect(text).toMatch(`<h1>Page not found.</h1>`)
+  })
+
   it('can load /robots.txt', async () => {
     const resp = await worker.fetch('/robots.txt')
     const headers = Object.fromEntries(resp.headers)

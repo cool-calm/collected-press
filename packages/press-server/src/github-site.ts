@@ -113,7 +113,7 @@ async function extractMarkdownMetadata(markdown: string) {
       .transform(resHTML(html))
     await res.text()
 
-    foundTitle = foundTitle.replace("&amp;", "&")
+    foundTitle = foundTitle.replace('&amp;', '&')
     title = foundTitle.trim()
   }
 
@@ -214,7 +214,7 @@ export async function handleRequest(
   repoSource: GitHubRepoSource,
   path: string,
   options: ServeRequestOptions,
-) {
+): Promise<Response> {
   if (path.startsWith('/')) {
     path = path.substring(1)
   }
@@ -307,6 +307,10 @@ export async function handleRequest(
       ),
     ).then((a: any) => a.flat())
 
+    if (allFiles.length === 0) {
+      return 404
+    }
+
     const limit = 500
     let files = allFiles.slice(0, limit)
 
@@ -389,7 +393,11 @@ export async function handleRequest(
     ).join('\n')
   }
 
-  const mainHTML = await getMainHTML()
+  const mainResult = await getMainHTML()
+  const [mainHTML, status]: [string, number] =
+    typeof mainResult === 'string'
+      ? [mainResult, Status.success]
+      : [`<h1>Page not found.</h1>`, mainResult]
   const htmlHead = (await htmlHeadPromise) || defaultHTMLHead()
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
   const headerHTML = `<nav>${
@@ -412,5 +420,5 @@ export async function handleRequest(
     footerHTML,
   ].join('\n')
 
-  return resHTML(html, Status.success, options.htmlHeaders)
+  return resHTML(html, status, options.htmlHeaders)
 }
