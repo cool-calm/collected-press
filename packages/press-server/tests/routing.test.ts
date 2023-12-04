@@ -69,6 +69,12 @@ describe('Worker', () => {
 
     const matches = Array.from(text.matchAll(/An Idea for Figures in Markdown/g))
     expect(matches.length).toBe(1)
+
+    const datetimes = Array.from(text.matchAll(/datetime="([\d-]+)"/g), (match) => match[1])
+    expect(datetimes.length).toBeGreaterThan(10)
+    expect(datetimes[0]).toMatch(/20\d\d-\d\d-\d\d/)
+    // They are in order newest to oldest.
+    expect(datetimes.slice().sort().reverse()).toEqual(datetimes)
   })
 
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {
