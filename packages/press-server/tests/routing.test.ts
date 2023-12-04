@@ -66,6 +66,9 @@ describe('Worker', () => {
     expect(text).toMatch(`The Missing App Economy`)
     expect(text).toMatch(`November 24, 2020`)
     expect(text).toMatch(`React &amp; Hooks`)
+
+    const matches = Array.from(text.matchAll(/An Idea for Figures in Markdown/g))
+    expect(matches.length).toBe(1)
   })
 
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {

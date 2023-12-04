@@ -92,25 +92,27 @@ async function fetchGitHubRepoFileFromJsdelivr(
 export async function listGitHubRepoFiles(
   ownerName: string,
   repoName: string,
-  tag: string,
+  sha: string,
   path: string,
 ): Promise<ReadonlyArray<string>> {
-  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
+  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON(
-      { sourceURL, error: `listGitHubRepoFiles ${tag} ${path}` },
+      { sourceURL, error: `listGitHubRepoFiles ${sha} ${path}` },
       sourceRes.status,
     )
   }
 
   const foundLinks: Array<string> = []
+  const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
   const transformedRes = new HTMLRewriter()
     .on('tr td.name a', {
       element(el) {
         let path = el.getAttribute('href')
         if (path.startsWith('.')) return
         path = path.replace(/^\/gh\//, '')
+        path = path.replace(absolutePrefix, '')
         foundLinks.push(path)
       },
     })

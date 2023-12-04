@@ -523,80 +523,63 @@ async function streamRequest(
       return
     }
 
-    yield "<h1>Articles</h1>\n";
-    yield "<nav><ul>\n";
+    yield '<h1>Articles</h1>\n'
+    yield '<nav><ul>\n'
 
     type FileInfo = { filePath: string; urlPath: string }
 
-    for (const lookupPath of paths) {
-      const files = await listGitHubRepoFiles(
+    for (const groupPath of paths) {
+      const markdownPaths: ReadonlyArray<string> = await listGitHubRepoFiles(
         ownerName,
         repoName,
         sha,
-        lookupPath + '/',
+        groupPath + '/',
       )
-        .then((absolutePaths) => {
-          const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
-          return absolutePaths.map((absolutePath) => {
-            const filePath = absolutePath.replace(absolutePrefix, '')
-            return {
-              filePath,
-              urlPath: filePath.replace(/\.md$/, ''),
-            }
-          }) as ReadonlyArray<FileInfo>
-        })
-        .catch(() => [] as ReadonlyArray<FileInfo>)
+        .then((paths) => paths.filter((path) => path.endsWith('.md')))
+        .catch(() => [])
 
       const postPromises = new Array<
         Promise<{ sortKey: string | number; html: string }>
       >()
 
-      for (const { filePath } of files) {
-        if (!filePath.endsWith('.md')) {
-          continue
-        }
-
-        const urlPath = filePath.replace(/\.md$/, '')
-        postPromises.push(
-          fetchRepoTextFile(filePath)
-            .then((markdown) => extractMarkdownMetadata(markdown))
-            .then(({ title, date, dateString }) => ({
-              sortKey: date instanceof Date ? date.valueOf() : title,
-              html: h(
-                'li',
-                {},
-                date instanceof Date
-                  ? h(
-                      'time',
-                      { datetime: dateString },
-                      date.toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      }),
-                    )
-                  : '',
-                h('a', { href: urlPath }, title),
-              ),
-            })),
+      const posts: Array<{ sortKey: string | number; html: string }> =
+        await Promise.all(
+          markdownPaths.map((filePath) => {
+            const urlPath = filePath.replace(/\.md$/, '')
+            return fetchRepoTextFile(filePath)
+              .then((markdown) => extractMarkdownMetadata(markdown))
+              .then(({ title, date, dateString }) => ({
+                sortKey: date instanceof Date ? date.valueOf() : title,
+                html: h(
+                  'li',
+                  {},
+                  date instanceof Date
+                    ? h(
+                        'time',
+                        { datetime: dateString },
+                        date.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }),
+                      )
+                    : '',
+                  h('a', { href: urlPath }, title),
+                ),
+              }))
+          }),
         )
 
-        const posts = await Promise.all(postPromises)
-
-        yield posts
-          .sort((a, b) => {
-            if (
-              typeof a.sortKey === 'number' &&
-              typeof b.sortKey === 'number'
-            ) {
-              return b.sortKey - a.sortKey
-            } else {
-              return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
-            }
-          })
-          .map((a: any) => a.html)
-          .join('\n')
-      }
+      yield posts
+        .sort((a, b) => {
+          if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
+            return b.sortKey - a.sortKey
+          } else {
+            return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+          }
+        })
+        .map((a) => a.html)
+        .join('\n')
     }
 
     yield `</ul></nav>`
@@ -611,13 +594,14 @@ async function streamRequest(
     yield '<main>\n'
 
     try {
-      yield * generateMainHTML()
-    }
-    catch (error) {
-      if (typeof error === "number") {
-        yield "<h1>Content not found.</h1>"
+      for await (const postHTML of generateMainHTML()) {
+        yield postHTML
+      }
+    } catch (error) {
+      if (typeof error === 'number') {
+        yield '<h1>Content not found.</h1>'
       } else {
-        yield "<h1>An error occurred.</h1>"
+        yield '<h1>An error occurred.</h1>'
       }
     }
 
