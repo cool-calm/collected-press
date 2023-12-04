@@ -55,6 +55,17 @@ describe('Worker', () => {
     expect(text).toMatch(`The Missing App Economy`)
     expect(text).toMatch(`November 24, 2020`)
     expect(text).toMatch(`React &amp; Hooks`)
+  }
+  )
+  it('can stream /blog', async () => {
+    const resp = await worker.fetch('/blog?stream')
+    expect(resp.headers.has("content-length")).toBe(false);
+    const text = await resp.text()
+    expect(text).toMatch(`<h1>Articles</h1>`)
+    expect(text).toMatch(`Vary variables not rules in CSS media queries`)
+    expect(text).toMatch(`The Missing App Economy`)
+    expect(text).toMatch(`November 24, 2020`)
+    expect(text).toMatch(`React &amp; Hooks`)
   })
 
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {

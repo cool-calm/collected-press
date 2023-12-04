@@ -144,7 +144,10 @@ export interface GitHubRepoSource {
   expectedMimeTypeForPath(path: string): string | undefined
   fetchHeadSHA(): Promise<null | string>
   serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>
-  serveStreamedURL(url: URL, options?: ServeRequestOptions): Promise<[Response, Promise<void>]>
+  serveStreamedURL(
+    url: URL,
+    options?: ServeRequestOptions,
+  ): Promise<[Response, Promise<void>]>
 }
 
 function getPathFileExtension(path: string): string | undefined {
@@ -188,19 +191,21 @@ export function sourceFromGitHubRepo(
       url: URL,
       options: ServeRequestOptions,
     ): Promise<[Response, Promise<void>]> {
-      const result = await streamRequest(this, url.pathname, options ?? {}).catch(
-        (err) => {
-          if (err instanceof Response) {
-            return err
-          }
-          throw err
-        },
-      )
+      const result = await streamRequest(
+        this,
+        url.pathname,
+        options ?? {},
+      ).catch((err) => {
+        if (err instanceof Response) {
+          return err
+        }
+        throw err
+      })
 
       if (result instanceof Response) {
         return [result, Promise.resolve()]
       } else {
-        return result;
+        return result
       }
     },
   })
@@ -490,114 +495,111 @@ async function streamRequest(
   const contentinfoPromise = loadPartial('_contentinfo.md')
 
   // TODO: make streamable
-  async function getMainHTML() {
+  async function* generateMainHTML(): AsyncGenerator<string, void, void> {
     if (path === '' || path === '/') {
-      return await fetchRepoTextFile('README.md')
-        .catch(
-          () => 'Add a `README.md` file to your repo to create a home page.',
-        )
+      yield await fetchRepoTextFile('README.md')
+        .catch(() => {
+          throw 404
+        })
         .then(renderMarkdownStandalonePage)
+      return
     }
 
     // TODO: we don’t warn when both these files exist.
-    const content: null | string = await Promise.any([
+    const content: string = await Promise.any([
       fetchRepoTextFile(`${path}/README.md`),
       fetchRepoTextFile(`${path}.md`),
-    ]).catch(() => null)
+    ]).catch(() => {
+      throw 404
+    })
 
     let paths = [path]
 
-    if (typeof content === 'string') {
-      const { html, frontMatter } = renderMarkdown(content)
-      if (Array.isArray(frontMatter.includes)) {
-        paths = frontMatter.includes
-      } else {
-        return await renderPrimaryArticle(html, path, repoSource, frontMatter)
+    const { html, frontMatter } = renderMarkdown(content)
+    if (Array.isArray(frontMatter.includes)) {
+      paths = frontMatter.includes
+    } else {
+      yield await renderPrimaryArticle(html, path, repoSource, frontMatter)
+      return
+    }
+
+    yield "<h1>Articles</h1>\n";
+    yield "<nav><ul>\n";
+
+    type FileInfo = { filePath: string; urlPath: string }
+
+    for (const lookupPath of paths) {
+      const files = await listGitHubRepoFiles(
+        ownerName,
+        repoName,
+        sha,
+        lookupPath + '/',
+      )
+        .then((absolutePaths) => {
+          const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
+          return absolutePaths.map((absolutePath) => {
+            const filePath = absolutePath.replace(absolutePrefix, '')
+            return {
+              filePath,
+              urlPath: filePath.replace(/\.md$/, ''),
+            }
+          }) as ReadonlyArray<FileInfo>
+        })
+        .catch(() => [] as ReadonlyArray<FileInfo>)
+
+      const postPromises = new Array<
+        Promise<{ sortKey: string | number; html: string }>
+      >()
+
+      for (const { filePath } of files) {
+        if (!filePath.endsWith('.md')) {
+          continue
+        }
+
+        const urlPath = filePath.replace(/\.md$/, '')
+        postPromises.push(
+          fetchRepoTextFile(filePath)
+            .then((markdown) => extractMarkdownMetadata(markdown))
+            .then(({ title, date, dateString }) => ({
+              sortKey: date instanceof Date ? date.valueOf() : title,
+              html: h(
+                'li',
+                {},
+                date instanceof Date
+                  ? h(
+                      'time',
+                      { datetime: dateString },
+                      date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      }),
+                    )
+                  : '',
+                h('a', { href: urlPath }, title),
+              ),
+            })),
+        )
+
+        const posts = await Promise.all(postPromises)
+
+        yield posts
+          .sort((a, b) => {
+            if (
+              typeof a.sortKey === 'number' &&
+              typeof b.sortKey === 'number'
+            ) {
+              return b.sortKey - a.sortKey
+            } else {
+              return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+            }
+          })
+          .map((a: any) => a.html)
+          .join('\n')
       }
     }
 
-    type FileInfo = { filePath: string; urlPath: string }
-    const allFiles: ReadonlyArray<FileInfo> = await Promise.all(
-      Array.from(
-        function* () {
-          for (const lookupPath of paths) {
-            yield listGitHubRepoFiles(
-              ownerName,
-              repoName,
-              sha,
-              lookupPath + '/',
-            )
-              .then((absolutePaths) => {
-                const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
-                return absolutePaths.map((absolutePath) => {
-                  const filePath = absolutePath.replace(absolutePrefix, '')
-                  return {
-                    filePath,
-                    urlPath: filePath.replace(/\.md$/, ''),
-                  }
-                }) as ReadonlyArray<FileInfo>
-              })
-              .catch(() => [] as ReadonlyArray<FileInfo>)
-          }
-        }.call(undefined),
-      ),
-    ).then((a: any) => a.flat())
-
-    if (allFiles.length === 0) {
-      return 404
-    }
-
-    const limit = 500
-    let files = allFiles.slice(0, limit)
-
-    files.reverse()
-
-    const articlesHTML = (
-      await Promise.all(
-        Array.from(
-          function* () {
-            for (const { filePath } of files) {
-              if (!filePath.endsWith('.md')) {
-                continue
-              }
-
-              const urlPath = filePath.replace(/\.md$/, '')
-              yield fetchRepoTextFile(filePath)
-                .then((markdown) => extractMarkdownMetadata(markdown))
-                .then(({ title, date, dateString }) => ({
-                  sortKey: date instanceof Date ? date.valueOf() : title,
-                  html: h(
-                    'li',
-                    {},
-                    date instanceof Date
-                      ? h(
-                          'time',
-                          { datetime: dateString },
-                          date.toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          }),
-                        )
-                      : '',
-                    h('a', { href: urlPath }, title),
-                  ),
-                }))
-            }
-          }.call(undefined),
-        ),
-      )
-    )
-      .sort((a: any, b: any) => {
-        if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
-          return b.sortKey - a.sortKey
-        } else {
-          return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
-        }
-      })
-      .map((a: any) => a.html)
-      .join('\n')
-    return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`
+    yield `</ul></nav>`
   }
 
   const [htmlStream, promise] = streamText(async function* () {
@@ -608,15 +610,18 @@ async function streamRequest(
     yield '</header>\n'
     yield '<main>\n'
 
-    const mainResult = await getMainHTML()
-    const [mainHTML, status]: [string, number] =
-      typeof mainResult === 'string'
-        ? [mainResult, Status.success]
-        : [`<h1>Page not found.</h1>`, mainResult]
+    try {
+      yield * generateMainHTML()
+    }
+    catch (error) {
+      if (typeof error === "number") {
+        yield "<h1>Content not found.</h1>"
+      } else {
+        yield "<h1>An error occurred.</h1>"
+      }
+    }
 
-    yield typeof mainHTML === 'string' ? mainHTML : 'Not found'
     yield '\n'
-
     yield `<footer role="contentinfo">${
       (await contentinfoPromise) || ''
     }</footer>\n`
