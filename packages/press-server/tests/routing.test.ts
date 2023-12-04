@@ -1,11 +1,16 @@
 import { unstable_dev } from 'wrangler'
 import type { UnstableDevWorker } from 'wrangler'
+// import { test, expect } from '@playwright/test';
+
+// const { describe, beforeAll, afterAll } = test;
+// const it = test;
 
 describe('Worker', () => {
   let worker: UnstableDevWorker
 
   beforeAll(async () => {
     worker = await unstable_dev(__dirname + '/worker.ts', {
+      port: 4321,
       experimental: { disableExperimentalWarning: true },
     })
   })
@@ -17,6 +22,17 @@ describe('Worker', () => {
   // TODO: these should load from this repo, not RoyalIcing/RoyalIcing
   it('can render /', async () => {
     const resp = await worker.fetch('/')
+    const text = await resp.text()
+    expect(resp.headers.has("content-length")).toBe(true);
+    expect(text).toContain('<!doctype html>')
+    expect(text).toMatch(
+      `<h1>Patrick Smith — Product Developer &amp; Design Engineer</h1>`,
+    )
+  })
+
+  it('can stream /', async () => {
+    const resp = await worker.fetch('/?stream')
+    expect(resp.headers.has("content-length")).toBe(false);
     const text = await resp.text()
     expect(text).toContain('<!doctype html>')
     expect(text).toMatch(

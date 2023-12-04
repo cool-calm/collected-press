@@ -11,6 +11,7 @@ import {
   FrontmatterProperties,
   md,
   renderMarkdown,
+  streamText,
 } from './html'
 import { resHTML, Status } from './http'
 
@@ -143,6 +144,7 @@ export interface GitHubRepoSource {
   expectedMimeTypeForPath(path: string): string | undefined
   fetchHeadSHA(): Promise<null | string>
   serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>
+  serveStreamedURL(url: URL, options?: ServeRequestOptions): Promise<[Response, Promise<void>]>
 }
 
 function getPathFileExtension(path: string): string | undefined {
@@ -181,6 +183,25 @@ export function sourceFromGitHubRepo(
           throw err
         },
       )
+    },
+    async serveStreamedURL(
+      url: URL,
+      options: ServeRequestOptions,
+    ): Promise<[Response, Promise<void>]> {
+      const result = await streamRequest(this, url.pathname, options ?? {}).catch(
+        (err) => {
+          if (err instanceof Response) {
+            return err
+          }
+          throw err
+        },
+      )
+
+      if (result instanceof Response) {
+        return [result, Promise.resolve()]
+      } else {
+        return result;
+      }
     },
   })
 }
@@ -421,4 +442,187 @@ export async function handleRequest(
   ].join('\n')
 
   return resHTML(html, status, options.htmlHeaders)
+}
+
+async function streamRequest(
+  repoSource: GitHubRepoSource,
+  path: string,
+  options: ServeRequestOptions,
+): Promise<Response | [Response, Promise<void>]> {
+  const { ownerName, repoName } = repoSource
+
+  if (path.startsWith('/')) {
+    path = path.substring(1)
+  }
+
+  const fetchRepoContent =
+    options.fetchRepoContent ?? fetchGitHubRepoFileResponse
+  const treatAsStatic =
+    options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
+
+  const sha = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+
+  if (treatAsStatic) {
+    return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
+      res.clone(),
+    )
+  }
+
+  function fetchRepoTextFile(path: string): Promise<string> {
+    return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
+      res.text(),
+    )
+  }
+
+  function loadPartial(path: string): Promise<string | null> {
+    const type: 'html' | 'markdown' = path.endsWith('.html')
+      ? 'html'
+      : 'markdown'
+
+    return fetchRepoTextFile(path)
+      .then((source) => (type === 'markdown' ? md.render(source) : source))
+      .then((html) => adjustHTML(html))
+      .catch(() => null)
+  }
+
+  const htmlHeadPromise = loadPartial('_head.html')
+  const navPromise = loadPartial('_nav.md')
+  const contentinfoPromise = loadPartial('_contentinfo.md')
+
+  // TODO: make streamable
+  async function getMainHTML() {
+    if (path === '' || path === '/') {
+      return await fetchRepoTextFile('README.md')
+        .catch(
+          () => 'Add a `README.md` file to your repo to create a home page.',
+        )
+        .then(renderMarkdownStandalonePage)
+    }
+
+    // TODO: we don’t warn when both these files exist.
+    const content: null | string = await Promise.any([
+      fetchRepoTextFile(`${path}/README.md`),
+      fetchRepoTextFile(`${path}.md`),
+    ]).catch(() => null)
+
+    let paths = [path]
+
+    if (typeof content === 'string') {
+      const { html, frontMatter } = renderMarkdown(content)
+      if (Array.isArray(frontMatter.includes)) {
+        paths = frontMatter.includes
+      } else {
+        return await renderPrimaryArticle(html, path, repoSource, frontMatter)
+      }
+    }
+
+    type FileInfo = { filePath: string; urlPath: string }
+    const allFiles: ReadonlyArray<FileInfo> = await Promise.all(
+      Array.from(
+        function* () {
+          for (const lookupPath of paths) {
+            yield listGitHubRepoFiles(
+              ownerName,
+              repoName,
+              sha,
+              lookupPath + '/',
+            )
+              .then((absolutePaths) => {
+                const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
+                return absolutePaths.map((absolutePath) => {
+                  const filePath = absolutePath.replace(absolutePrefix, '')
+                  return {
+                    filePath,
+                    urlPath: filePath.replace(/\.md$/, ''),
+                  }
+                }) as ReadonlyArray<FileInfo>
+              })
+              .catch(() => [] as ReadonlyArray<FileInfo>)
+          }
+        }.call(undefined),
+      ),
+    ).then((a: any) => a.flat())
+
+    if (allFiles.length === 0) {
+      return 404
+    }
+
+    const limit = 500
+    let files = allFiles.slice(0, limit)
+
+    files.reverse()
+
+    const articlesHTML = (
+      await Promise.all(
+        Array.from(
+          function* () {
+            for (const { filePath } of files) {
+              if (!filePath.endsWith('.md')) {
+                continue
+              }
+
+              const urlPath = filePath.replace(/\.md$/, '')
+              yield fetchRepoTextFile(filePath)
+                .then((markdown) => extractMarkdownMetadata(markdown))
+                .then(({ title, date, dateString }) => ({
+                  sortKey: date instanceof Date ? date.valueOf() : title,
+                  html: h(
+                    'li',
+                    {},
+                    date instanceof Date
+                      ? h(
+                          'time',
+                          { datetime: dateString },
+                          date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          }),
+                        )
+                      : '',
+                    h('a', { href: urlPath }, title),
+                  ),
+                }))
+            }
+          }.call(undefined),
+        ),
+      )
+    )
+      .sort((a: any, b: any) => {
+        if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
+          return b.sortKey - a.sortKey
+        } else {
+          return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+        }
+      })
+      .map((a: any) => a.html)
+      .join('\n')
+    return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`
+  }
+
+  const [htmlStream, promise] = streamText(async function* () {
+    yield (await htmlHeadPromise) || defaultHTMLHead()
+    yield '<body>\n'
+    yield '<header role=banner>\n'
+    yield `<nav>${(await navPromise) || ''}</nav>\n`
+    yield '</header>\n'
+    yield '<main>\n'
+
+    const mainResult = await getMainHTML()
+    const [mainHTML, status]: [string, number] =
+      typeof mainResult === 'string'
+        ? [mainResult, Status.success]
+        : [`<h1>Page not found.</h1>`, mainResult]
+
+    yield typeof mainHTML === 'string' ? mainHTML : 'Not found'
+    yield '\n'
+
+    yield `<footer role="contentinfo">${
+      (await contentinfoPromise) || ''
+    }</footer>\n`
+  })
+
+  // FIXME: assumes this page is valid.
+  const status = Status.success
+  return [resHTML(htmlStream, status, options.htmlHeaders), promise]
 }

@@ -19,8 +19,8 @@ export interface FrontmatterProperties {
   includes?: ReadonlyArray<string>
 }
 export function renderMarkdown(markdown: string): {
-    html: string
-    frontMatter: FrontmatterProperties
+  html: string
+  frontMatter: FrontmatterProperties
 } {
   let frontMatterSource = ''
   frontMatterCallback = (receivedFrontmatter: string) => {
@@ -31,35 +31,37 @@ export function renderMarkdown(markdown: string): {
   let frontMatter: FrontmatterProperties = {}
   try {
     frontMatter = parseYAML(frontMatterSource) ?? {}
-  } catch { }
+  } catch {}
 
   return Object.freeze({ html, frontMatter })
 }
 
-function streamHTML(makeSource) {
+export function streamText(
+  makeSource: () => AsyncGenerator<string, void, void>,
+): [ReadableStream<Uint8Array>, Promise<void>] {
   const encoder = new TextEncoder()
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
+  // We can’t create a new ReadableStream in Cloudflare: https://developers.cloudflare.com/workers/runtime-apis/streams/readablestream/
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
+  const writer = writable.getWriter()
 
   async function performWrite() {
     for await (const chunk of makeSource()) {
-      await writer.write(encoder.encode(chunk));
+      await writer.write(encoder.encode(chunk))
     }
-    await writer.close();
+    await writer.close()
   }
 
-  return [readable, performWrite()];
+  return [readable, performWrite()]
 }
 
 export function streamStyledMarkdown(makeMarkdown) {
-  return streamHTML(async function* () {
-    yield* styledHTMLHeadElements();
-    yield "<body><article>";
-    yield md.render(await makeMarkdown());
-    yield "</article>";
+  return streamText(async function* () {
+    yield* styledHTMLHeadElements()
+    yield '<body><article>'
+    yield md.render(await makeMarkdown())
+    yield '</article>'
   })
 }
-
 
 const styledHTMLHeadElements = () => [
   `<!doctype html>`,
@@ -108,16 +110,14 @@ form[method="GET"] { display: flex; gap: 1rem; align-items: center; }
 form button { padding: 0.25rem 0.75rem; background-color: #0060F224; color: black; border: 0.5px solid var(--_color_); border-radius: 999px; }
 footer[role=contentinfo] { margin-top: 3rem; padding-top: 1rem; border-top: 0.25px solid currentColor; font-size: 0.75rem; }
 </style>`,
-];
+]
 
 export function defaultHTMLHead(): string {
-  return styledHTMLHeadElements().join("\n");
+  return styledHTMLHeadElements().join('\n')
 }
 
 export function renderStyledHTML(...contentHTML): string {
-  return [
-    ...styledHTMLHeadElements(),
-    "<body>",
-    ...contentHTML,
-  ].filter(Boolean).join('\n')
+  return [...styledHTMLHeadElements(), '<body>', ...contentHTML]
+    .filter(Boolean)
+    .join('\n')
 }

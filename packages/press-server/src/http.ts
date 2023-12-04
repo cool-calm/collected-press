@@ -26,30 +26,38 @@ const secureHTMLHeaders = Object.freeze([
   pair('x-content-type-options', 'nosniff'),
   pair('x-frame-options', 'DENY'),
   /* pair('x-xss-protection', '1; mode=block'), */
-]);
+])
 
 const contentSecurityPolicyHeaders = Object.freeze([
   pair(
     'content-security-policy',
-    "default-src 'self'; font-src 'self' data:; img-src * data:; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com"
+    "default-src 'self'; font-src 'self' data:; img-src * data:; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com",
   ),
-]);
+])
 
 const linkHeaders = Object.freeze([
   // pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
-]);
+])
 
-export function resJSON(json, status = Status.success, headers = new Headers()) {
+export function resJSON(
+  json,
+  status = Status.success,
+  headers = new Headers(),
+) {
   headers.set('content-type', 'application/json')
   return new Response(JSON.stringify(json), { status, headers })
 }
-export function resHTML(html, status = Status.success, headers?: Headers) {
+export function resHTML(
+  html: string | ReadableStream<Uint8Array>,
+  status = Status.success,
+  headers?: Headers,
+) {
   // assignEntries(headers, pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)
   // assigning(pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)(headers)
   // assign(headers, [pair('content-type', 'text/html;charset=utf-8')], secureHTMLHeaders, contentSecurityPolicyHeaders)
 
-  const customHeaders = headers !== undefined;
-  headers = new Headers(headers);
+  const customHeaders = headers !== undefined
+  headers = new Headers(headers)
 
   headers.set('content-type', 'text/html;charset=utf-8')
   if (!customHeaders) {
@@ -59,16 +67,28 @@ export function resHTML(html, status = Status.success, headers?: Headers) {
   }
   return new Response(html, { status, headers })
 }
-export function resPlainText(text, status = Status.success, headers = new Headers()) {
+export function resPlainText(
+  text,
+  status = Status.success,
+  headers = new Headers(),
+) {
   headers.set('content-type', 'text/plain;charset=utf-8')
   return new Response(text, { status, headers })
 }
-export function resCSSCached(text, status = Status.success, headers = new Headers()) {
+export function resCSSCached(
+  text,
+  status = Status.success,
+  headers = new Headers(),
+) {
   headers.set('content-type', 'text/css;charset=utf-8')
   headers.set('cache-control', 'public, max-age=604800, s-maxage=43200')
   return new Response(text, { status, headers })
 }
-export function resRedirect(location, status = Status.seeOther, headers = new Headers()) {
+export function resRedirect(
+  location,
+  status = Status.seeOther,
+  headers = new Headers(),
+) {
   headers.set('location', location.toString())
   return new Response(undefined, { status, headers })
 }
