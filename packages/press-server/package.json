@@ -1,6 +1,6 @@
 {
   "name": "@collected/press-server",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Render and serve Markdown directly from a GitHub repo",
   "source": "src/index.ts",
   "main": "dist/main.js",
