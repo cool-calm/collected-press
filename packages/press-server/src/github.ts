@@ -206,7 +206,7 @@ export function findBranchInRefs(
   return null
 }
 
-export async function fetchGitHubGistContent(
+export async function fetchGitHubGistFile(
   ownerName: string,
   gistID: string,
   path = '',
