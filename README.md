@@ -3,9 +3,9 @@
 Render Markdown from any public GitHub repo or gist, handling syntax highlighting on the server.
 
 - [View API Docs](https://collected.press/docs/api)
-- [View Source on GitHub](https://github.com/ThatCollected/collected-press)
+- [View Source on GitHub](https://github.com/cool-calm/collected-press)
 
-----
+---
 
 ## Use Cases
 
@@ -27,11 +27,11 @@ Render Markdown from any public GitHub repo or gist, handling syntax highlightin
 ### Rendered
 
 - React: https://collected.press/github/facebook/react/README.md
-    - React’s Changelog: https://collected.press/github/facebook/react/CHANGELOG.md
+  - React’s Changelog: https://collected.press/github/facebook/react/CHANGELOG.md
 - Night Owl CSS: https://collected.press/github/highlightjs/highlight.js@4c1f2b7f9a13ba3263b140c11524bd934d3b93bf/src/styles/night-owl.css
 - Really Long Readme: https://collected.press/github/avelino/awesome-go@8d309904a16bf60d2f4b30ecf99b226554580cdd/README.md
 - TailwindCSS: https://collected.press/github/tailwindlabs/tailwindcss
-    - Tailwind’s Colors: https://collected.press/github/tailwindlabs/tailwindcss@b49dc7cafafd9b5d1070ef512a6a1a403d74627c/src/public/colors.js
+  - Tailwind’s Colors: https://collected.press/github/tailwindlabs/tailwindcss@b49dc7cafafd9b5d1070ef512a6a1a403d74627c/src/public/colors.js
 
 These routes are conveniently short, and redirect to the latest SHA. Markdown and source code files are rendered as styled HTML.
 

@@ -1,4 +1,7 @@
-import { resJSON } from './http'
+function resJSON(json, status = 200, headers = new Headers()) {
+  headers.set('content-type', 'application/json')
+  return new Response(JSON.stringify(json), { status, headers })
+}
 
 interface RefItem {
   ref: string
@@ -10,24 +13,10 @@ interface RefItem {
   agent?: string
 }
 
-export const githubOwnerNameRegex = /^[-_a-z\d]+/i
-export const githubRepoNameRegex = /^[-_.a-z\d]+/i
+// export const githubOwnerNameRegex = /^[-_a-z\d]+/i
+// export const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
-export async function fetchGitHubRepoFileResponse(
-  ownerName: string,
-  repoName: string,
-  tag: string,
-  path: string,
-): Promise<Response> {
-  return fetchGitHubRepoFileFromGitHubUserContent(
-    ownerName,
-    repoName,
-    tag,
-    path,
-  )
-}
-
-async function fetchGitHubRepoFileFromGitHubUserContent(
+export async function fetchGitHubRepoContent(
   ownerName: string,
   repoName: string,
   tag: string,
@@ -40,7 +29,7 @@ async function fetchGitHubRepoFileFromGitHubUserContent(
     throw resJSON(
       {
         sourceURL,
-        error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
+        error: `fetch github repo content ${sourceRes.status} ${tag} ${path}`,
       },
       sourceRes.status,
     )
@@ -68,60 +57,61 @@ async function fetchGitHubRepoFileFromGitHubUserContent(
   return sourceRes
 }
 
-async function fetchGitHubRepoFileFromJsdelivr(
-  ownerName: string,
-  repoName: string,
-  tag: string,
-  path: string,
-): Promise<Response> {
-  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
-  const sourceRes = await fetch(sourceURL)
-  if (sourceRes.status >= 400) {
-    throw resJSON(
-      {
-        sourceURL,
-        error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
-      },
-      sourceRes.status,
-    )
-  }
+// async function fetchGitHubRepoFileFromJsdelivr(
+//   ownerName: string,
+//   repoName: string,
+//   tag: string,
+//   path: string,
+// ): Promise<Response> {
+//   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
+//   const sourceRes = await fetch(sourceURL)
+//   if (sourceRes.status >= 400) {
+//     throw resJSON(
+//       {
+//         sourceURL,
+//         error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
+//       },
+//       sourceRes.status,
+//     )
+//   }
 
-  return sourceRes
-}
+//   return sourceRes
+// }
 
-export async function listGitHubRepoFiles(
-  ownerName: string,
-  repoName: string,
-  sha: string,
-  path: string,
-): Promise<ReadonlyArray<string>> {
-  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`
-  const sourceRes = await fetch(sourceURL)
-  if (sourceRes.status >= 400) {
-    throw resJSON(
-      { sourceURL, error: `listGitHubRepoFiles ${sha} ${path}` },
-      sourceRes.status,
-    )
-  }
+// This is a hack
+// export async function listGitHubRepoFiles(
+//   ownerName: string,
+//   repoName: string,
+//   sha: string,
+//   path: string,
+// ): Promise<ReadonlyArray<string>> {
+//   const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`
+//   const sourceRes = await fetch(sourceURL)
+//   if (sourceRes.status >= 400) {
+//     throw resJSON(
+//       { sourceURL, error: `listGitHubRepoFiles ${sha} ${path}` },
+//       sourceRes.status,
+//     )
+//   }
 
-  const foundLinks: Array<string> = []
-  const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
-  const transformedRes = new HTMLRewriter()
-    .on('tr td.name a', {
-      element(el) {
-        let path = el.getAttribute('href')
-        if (path.startsWith('.')) return
-        path = path.replace(/^\/gh\//, '')
-        path = path.replace(absolutePrefix, '')
-        foundLinks.push(path)
-      },
-    })
-    .transform(sourceRes)
+//   const foundLinks: Array<string> = []
+//   const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
+//   const transformedRes = new HTMLRewriter()
+//     .on('tr td.name a', {
+//       element(el) {
+//         let path = el.getAttribute('href')
+//         if (path.startsWith('.')) return
+//         path = path.replace(/^\/gh\//, '')
+//         path = path.replace(absolutePrefix, '')
+//         foundLinks.push(path)
+//       },
+//     })
+//     .transform(sourceRes)
 
-  await transformedRes.text()
+//   await transformedRes.text()
 
-  return Object.freeze(foundLinks)
-}
+//   return Object.freeze(foundLinks)
+// }
 
 export async function fetchGitHubRepoRefs(
   ownerName: string,
@@ -198,15 +188,18 @@ export function findBranchInRefs(
   refsIterable: Iterable<RefItem>,
   branch: string,
 ): null | Readonly<{ sha: string }> {
+  const expectedRef = `refs/heads/${branch}`
+
   for (const line of refsIterable) {
-    if (line.ref === `refs/heads/${branch}`) {
+    if (line.ref === expectedRef) {
       return { sha: line.oid }
     }
   }
+
   return null
 }
 
-export async function fetchGitHubGistContent(
+export async function fetchGitHubGistFile(
   ownerName: string,
   gistID: string,
   path = '',
