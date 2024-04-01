@@ -1,4 +1,8 @@
-function resJSON(json, status = 200, headers = new Headers()) {
+function resJSON(
+  json: {} | ReadonlyArray<{} | string>,
+  status = 200,
+  headers = new Headers(),
+) {
   headers.set('content-type', 'application/json')
   return new Response(JSON.stringify(json), { status, headers })
 }
@@ -173,10 +177,12 @@ export function findHEADInRefs(
 ): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
   for (const line of refsIterable) {
     if (line.HEADRef) {
+      const branch = line.HEADRef.split('/').at(-1)
+      if (!branch) return null
       return {
         sha: line.oid,
         HEADRef: line.HEADRef,
-        branch: line.HEADRef.split('/').at(-1),
+        branch,
       }
     }
     break
