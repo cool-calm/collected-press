@@ -50,7 +50,7 @@ async function renderPrimaryArticle(
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
-        element.tagName = 'a'
+        Object.assign(element, { tagName: 'a' })
         element.setAttribute('href', `/${path}`)
         element.before('<h1>', { html: true })
 
@@ -368,7 +368,7 @@ export async function handleRequest(
                     date instanceof Date
                       ? h(
                           'time',
-                          { datetime: dateString },
+                          { datetime: dateString ?? undefined },
                           date.toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
@@ -566,7 +566,7 @@ async function streamRequest(
                   date instanceof Date
                     ? h(
                         'time',
-                        { datetime: dateString },
+                        { datetime: dateString ?? undefined },
                         date.toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',

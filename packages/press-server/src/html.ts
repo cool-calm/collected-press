@@ -54,7 +54,7 @@ export function streamText(
   return [readable, performWrite()]
 }
 
-export function streamStyledMarkdown(makeMarkdown) {
+export function streamStyledMarkdown(makeMarkdown: () => Promise<string>) {
   return streamText(async function* () {
     yield* styledHTMLHeadElements()
     yield '<body><article>'
@@ -116,7 +116,7 @@ export function defaultHTMLHead(): string {
   return styledHTMLHeadElements().join('\n')
 }
 
-export function renderStyledHTML(...contentHTML): string {
+export function renderStyledHTML(...contentHTML: readonly string[]): string {
   return [...styledHTMLHeadElements(), '<body>', ...contentHTML]
     .filter(Boolean)
     .join('\n')

@@ -40,7 +40,7 @@ const linkHeaders = Object.freeze([
 ])
 
 export function resJSON(
-  json,
+  json: {} | ReadonlyArray<unknown>,
   status = Status.success,
   headers = new Headers(),
 ) {
@@ -61,14 +61,20 @@ export function resHTML(
 
   headers.set('content-type', 'text/html;charset=utf-8')
   if (!customHeaders) {
-    into(headers, secureHTMLHeaders)
-    into(headers, contentSecurityPolicyHeaders)
-    into(headers, linkHeaders)
+    for (const [key, value] of secureHTMLHeaders) {
+      headers.append(key, value)
+    }
+    for (const [key, value] of contentSecurityPolicyHeaders) {
+      headers.append(key, value)
+    }
+    // for (const [key, value] of linkHeaders) {
+    //   headers.append(key, value)
+    // }
   }
   return new Response(html, { status, headers })
 }
 export function resPlainText(
-  text,
+  text: string,
   status = Status.success,
   headers = new Headers(),
 ) {
@@ -76,7 +82,7 @@ export function resPlainText(
   return new Response(text, { status, headers })
 }
 export function resCSSCached(
-  text,
+  text: string,
   status = Status.success,
   headers = new Headers(),
 ) {
@@ -85,7 +91,7 @@ export function resCSSCached(
   return new Response(text, { status, headers })
 }
 export function resRedirect(
-  location,
+  location: string,
   status = Status.seeOther,
   headers = new Headers(),
 ) {

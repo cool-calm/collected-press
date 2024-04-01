@@ -1,8 +1,11 @@
 export function pair<K, V>(key: K, value: V): readonly [K, V] {
-  return Object.freeze([key, value] as const);
+  return Object.freeze([key, value] as const)
 }
 
-export function into(target, input) {
+export function into(
+  target: Headers | Map<string, string> | object,
+  input: Iterable<readonly [string, string]>,
+) {
   let setter
 
   if ('append' in target && typeof target.append === 'function') {
@@ -11,11 +14,9 @@ export function into(target, input) {
     setter = target.set
   } else if ('add' in target && typeof target.add === 'function') {
     setter = target.add
-  } else if ('push' in target && typeof target.push === 'function') {
-    setter = item => target.push(item)
   } else {
-    setter = (key, value) => {
-      target[key] = value
+    setter = (key: string, value: string) => {
+      ;(target as Record<string, string>)[key] = value
     }
   }
 

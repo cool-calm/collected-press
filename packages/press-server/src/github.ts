@@ -107,9 +107,10 @@ export async function listGitHubRepoFiles(
   const foundLinks: Array<string> = []
   const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
   const transformedRes = new HTMLRewriter()
-    .on('tr td.name a', {
+    .on('tr td.name a[href]', {
       element(el) {
         let path = el.getAttribute('href')
+        if (typeof path !== 'string') return
         if (path.startsWith('.')) return
         path = path.replace(/^\/gh\//, '')
         path = path.replace(absolutePrefix, '')
@@ -183,10 +184,14 @@ export function findHEADInRefs(
 ): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
   for (const line of refsIterable) {
     if (line.HEADRef) {
+      const branch = line.HEADRef.split('/').at(-1)
+      if (!branch) {
+        return null
+      }
       return {
         sha: line.oid,
         HEADRef: line.HEADRef,
-        branch: line.HEADRef.split('/').at(-1),
+        branch,
       }
     }
     break
