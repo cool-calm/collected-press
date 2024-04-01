@@ -11,6 +11,7 @@ describe('Worker', () => {
   beforeAll(async () => {
     worker = await unstable_dev(__dirname + '/worker.ts', {
       port: 4321,
+      nodeCompat: true,
       experimental: { disableExperimentalWarning: true },
     })
   })
@@ -23,7 +24,7 @@ describe('Worker', () => {
   it('can render /', async () => {
     const resp = await worker.fetch('/')
     const text = await resp.text()
-    expect(resp.headers.has("content-length")).toBe(true);
+    expect(resp.headers.has('content-length')).toBe(true)
     expect(text).toContain('<!doctype html>')
     expect(text).toMatch(
       `<h1>Patrick Smith — Product Developer &amp; Design Engineer</h1>`,
@@ -32,7 +33,8 @@ describe('Worker', () => {
 
   it('can stream /', async () => {
     const resp = await worker.fetch('/?stream')
-    expect(resp.headers.has("content-length")).toBe(false);
+    expect(resp.headers.has('content-length')).toBe(false)
+    expect(resp.headers.get('transfer-encoding')).toBe('chunked')
     const text = await resp.text()
     expect(text).toContain('<!doctype html>')
     expect(text).toMatch(
@@ -55,11 +57,11 @@ describe('Worker', () => {
     expect(text).toMatch(`The Missing App Economy`)
     expect(text).toMatch(`November 24, 2020`)
     expect(text).toMatch(`React &amp; Hooks`)
-  }
-  )
+  })
   it('can stream /blog', async () => {
     const resp = await worker.fetch('/blog?stream')
-    expect(resp.headers.has("content-length")).toBe(false);
+    expect(resp.headers.has('content-length')).toBe(false)
+    expect(resp.headers.get('transfer-encoding')).toBe('chunked')
     const text = await resp.text()
     expect(text).toMatch(`<h1>Articles</h1>`)
     expect(text).toMatch(`Vary variables not rules in CSS media queries`)
@@ -67,10 +69,15 @@ describe('Worker', () => {
     expect(text).toMatch(`November 24, 2020`)
     expect(text).toMatch(`React &amp; Hooks`)
 
-    const matches = Array.from(text.matchAll(/An Idea for Figures in Markdown/g))
+    const matches = Array.from(
+      text.matchAll(/An Idea for Figures in Markdown/g),
+    )
     expect(matches.length).toBe(1)
 
-    const datetimes = Array.from(text.matchAll(/datetime="([\d-]+)"/g), (match) => match[1])
+    const datetimes = Array.from(
+      text.matchAll(/datetime="([\d-]+)"/g),
+      (match) => match[1],
+    )
     expect(datetimes.length).toBeGreaterThan(10)
     expect(datetimes[0]).toMatch(/20\d\d-\d\d-\d\d/)
     // They are in order newest to oldest.
@@ -90,6 +97,7 @@ describe('Worker', () => {
     const resp = await worker.fetch('/projects/hoverlytics.jpg')
     const headers = Object.fromEntries(resp.headers)
     expect(headers['content-type']).toEqual('image/jpeg')
+    expect(resp.headers.has('content-length')).toBe(true)
     const bytes = await resp.arrayBuffer()
     expect(bytes.byteLength).toBeGreaterThan(1000)
   })
@@ -105,8 +113,9 @@ describe('Worker', () => {
     const resp = await worker.fetch('/robots.txt')
     const headers = Object.fromEntries(resp.headers)
     expect(headers['content-type']).toContain('text/plain')
+    expect(resp.headers.has('content-length')).toBe(true)
     const text = await resp.text()
-    expect(text).toContain("User-agent")
+    expect(text).toContain('User-agent')
   })
 
   it('can load /resume.pdf', async () => {
@@ -122,7 +131,7 @@ describe('Worker', () => {
     const headers = Object.fromEntries(resp.headers)
     expect(headers['content-type']).toContain('text/css')
     const text = await resp.text()
-    expect(text).toContain("@font-face")
+    expect(text).toContain('@font-face')
   })
 })
 

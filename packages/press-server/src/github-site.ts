@@ -163,7 +163,9 @@ export function sourceFromGitHubRepo(
     repoName: repoName,
     pathAppearsStatic(path: string) {
       const extension = getPathFileExtension(path)
-      return fileExtensionsToMimeTypes.has(extension)
+      return typeof extension === 'string'
+        ? fileExtensionsToMimeTypes.has(extension)
+        : false
     },
     expectedMimeTypeForPath(path: string): string | undefined {
       const extension = getPathFileExtension(path)
@@ -246,7 +248,11 @@ export async function handleRequest(
   }
 
   const { ownerName, repoName } = repoSource
-  const sha = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  if (resolvedSHA === null) {
+    throw Error('No SHA or HEAD.')
+  }
+  const sha = resolvedSHA
 
   const fetchRepoContent =
     options.fetchRepoContent ?? fetchGitHubRepoFileResponse
@@ -465,7 +471,11 @@ async function streamRequest(
   const treatAsStatic =
     options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
 
-  const sha = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  if (resolvedSHA === null) {
+    throw Error('No SHA or HEAD.')
+  }
+  const sha = resolvedSHA
 
   if (treatAsStatic) {
     return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
