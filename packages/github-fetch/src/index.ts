@@ -24,27 +24,27 @@ export interface RefItem {
 // export const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
 /**
- *
+ * Loads a particular file’s content from a GitHub repo.
  * @param ownerName The GitHub account (user or org).
  * @param repoName The GitHub repo under the owner.
- * @param tag The tag or SHA.
+ * @param shaOrTag The git SHA or tag. Use `fetchGitHubRepoRefs()` to retrieve a list of HEAD & branch SHAs.
  * @param path The workspace file path to load.
- * @returns A `Response` with HTTP status and body. Use `.text()` to grab the text content.
+ * @returns A `Response` with HTTP status and body. Use `.text()` to grab the text content, or `.arrayBuffer()` for binary content like images.
  */
 export async function fetchGitHubRepoContent(
   ownerName: string,
   repoName: string,
-  tag: string,
+  shaOrTag: string,
   path: string,
 ): Promise<Response> {
-  const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${tag}/${path}`
+  const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${shaOrTag}/${path}`
   // console.log(sourceURL)
   const sourceRes = await fetch(sourceURL)
   if (sourceRes.status >= 400) {
     throw resJSON(
       {
         sourceURL,
-        error: `fetch github repo content ${sourceRes.status} ${tag} ${path}`,
+        error: `fetch github repo content ${sourceRes.status} ${shaOrTag} ${path}`,
       },
       sourceRes.status,
     )
