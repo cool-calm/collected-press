@@ -7,7 +7,10 @@ function resJSON(
   return new Response(JSON.stringify(json), { status, headers })
 }
 
-interface RefItem {
+/**
+ * A git ref, parsed from performing a git fetch.
+ */
+export interface RefItem {
   ref: string
   oid: string
   target?: string
@@ -20,6 +23,14 @@ interface RefItem {
 // export const githubOwnerNameRegex = /^[-_a-z\d]+/i
 // export const githubRepoNameRegex = /^[-_.a-z\d]+/i
 
+/**
+ *
+ * @param ownerName The GitHub account (user or org).
+ * @param repoName The GitHub repo under the owner.
+ * @param tag The tag or SHA.
+ * @param path The workspace file path to load.
+ * @returns A `Response` with HTTP status and body. Use `.text()` to grab the text content.
+ */
 export async function fetchGitHubRepoContent(
   ownerName: string,
   repoName: string,
@@ -117,6 +128,12 @@ export async function fetchGitHubRepoContent(
 //   return Object.freeze(foundLinks)
 // }
 
+/**
+ * Does the equivalent of a `git fetch` to load all the branches from a GitHub repo, including the current HEAD.
+ * @param ownerName The GitHub account (user or org).
+ * @param repoName The GitHub repo under the owner.
+ * @returns A promise resolving to a generator function with each parsed ref.
+ */
 export async function fetchGitHubRepoRefs(
   ownerName: string,
   repoName: string,
@@ -172,6 +189,11 @@ export async function fetchGitHubRepoRefs(
   }
 }
 
+/**
+ * Looks up the HEAD ref from an iterable of refs. This lets you retrieve the most up-to-date SHA.
+ * @param refsIterable Usually from calling the result of `fetchGitHubRepoRefs()`
+ * @returns The SHA and branch name of the current HEAD, or `null` if not found.
+ */
 export function findHEADInRefs(
   refsIterable: Iterable<RefItem>,
 ): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
@@ -190,6 +212,12 @@ export function findHEADInRefs(
   return null
 }
 
+/**
+ * Looks up a branch from an iterable of refs. This lets you retrieve the branch’s most up-to-date SHA.
+ * @param refsIterable Usually from calling the result of `fetchGitHubRepoRefs()`
+ * @param branch The name of the branch to look up.
+ * @returns The SHA of the branch, or `null` if not found.
+ */
 export function findBranchInRefs(
   refsIterable: Iterable<RefItem>,
   branch: string,
@@ -205,6 +233,13 @@ export function findBranchInRefs(
   return null
 }
 
+/**
+ * Load the latest content from a GitHub Gist.
+ * @param ownerName The GitHub account (user or org).
+ * @param gistID The ID of the Gist.
+ * @param path The path within the Gist, useful for when it contains multiple files.
+ * @returns The content text.
+ */
 export async function fetchGitHubGistContent(
   ownerName: string,
   gistID: string,
