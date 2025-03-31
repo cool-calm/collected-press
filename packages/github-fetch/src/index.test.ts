@@ -32,5 +32,5 @@ test('fetchGitHubRepoContent', async () => {
   expect(homeRes.status).toBe(200)
 
   const html = await homeRes.text()
-  expect(html).toContain('# Patrick Smith')
+  expect(html).toContain('# Patrick George Wyndham Smith')
 })
