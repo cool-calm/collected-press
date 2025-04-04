@@ -25,10 +25,8 @@ describe('Worker', () => {
     const resp = await worker.fetch('/')
     const text = await resp.text()
     // expect(resp.headers.has('content-length')).toBe(true)
-    expect(text).toContain('<!doctype html>')
-    expect(text).toMatch(
-      `<h1>Patrick Smith — Product Developer &amp; Design Engineer</h1>`,
-    )
+    expect(text).toMatch(/<!doctype html>/i)
+    expect(text).toMatch(`<h1>Patrick George Wyndham Smith</h1>`)
   })
 
   it('can stream /', async () => {
@@ -36,10 +34,8 @@ describe('Worker', () => {
     expect(resp.headers.has('content-length')).toBe(false)
     expect(resp.headers.get('transfer-encoding')).toBe('chunked')
     const text = await resp.text()
-    expect(text).toContain('<!doctype html>')
-    expect(text).toMatch(
-      `<h1>Patrick Smith — Product Developer &amp; Design Engineer</h1>`,
-    )
+    expect(text).toMatch(/<!doctype html>/i)
+    expect(text).toMatch(`<h1>Patrick George Wyndham Smith</h1>`)
   })
 
   it('can render /2020', async () => {
