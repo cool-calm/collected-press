@@ -1,44 +1,44 @@
-import { parseISO } from 'date-fns'
-import h from 'vhtml'
+import { parseISO } from 'date-fns';
+import h from 'vhtml';
 import {
   fetchGitHubRepoFileResponse,
   listGitHubRepoFiles,
   fetchGitHubRepoRefs,
   findHEADInRefs,
-} from './github'
+} from './github';
 import {
   defaultHTMLHead,
   FrontmatterProperties,
   md,
   renderMarkdown,
   streamText,
-} from './html'
-import { resHTML, Status } from './http'
+} from './html';
+import { resHTML, Status } from './http';
 
 async function adjustHTML(html: string) {
   const res = new HTMLRewriter()
     .on('a[href]', {
       element: (element) => {
-        const rel = element.getAttribute('rel') || ''
-        element.setAttribute('rel', `${rel} noopener`.trim())
+        const rel = element.getAttribute('rel') || '';
+        element.setAttribute('rel', `${rel} noopener`.trim());
       },
     })
-    .transform(resHTML(html))
-  return await res.text()
+    .transform(resHTML(html));
+  return await res.text();
 }
 
 async function renderMarkdownStandalonePage(markdown: string) {
-  let html = md.render(markdown)
+  let html = md.render(markdown);
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {},
     })
-    .transform(resHTML(html))
-  return '<article>' + (await res.text()) + '</article>'
+    .transform(resHTML(html));
+  return '<article>' + (await res.text()) + '</article>';
 }
 
 function gitHubProfilePictureURL(ownerName: string) {
-  return new URL(`${ownerName}.png`, 'https://github.com/')
+  return new URL(`${ownerName}.png`, 'https://github.com/');
 }
 
 async function renderPrimaryArticle(
@@ -50,12 +50,12 @@ async function renderPrimaryArticle(
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
-        Object.assign(element, { tagName: 'a' })
-        element.setAttribute('href', `/${path}`)
-        element.before('<h1>', { html: true })
+        Object.assign(element, { tagName: 'a' });
+        element.setAttribute('href', `/${path}`);
+        element.before('<h1>', { html: true });
 
         if (typeof frontMatter.date === 'string') {
-          const date = parseISO(frontMatter.date)
+          const date = parseISO(frontMatter.date);
           element.after(
             h(
               'time',
@@ -67,7 +67,7 @@ async function renderPrimaryArticle(
               }),
             ),
             { html: true },
-          )
+          );
         }
 
         if (false && repoSource.ownerName === 'RoyalIcing') {
@@ -76,82 +76,82 @@ async function renderPrimaryArticle(
               repoSource.ownerName,
             )}" style="border-radius: 9999px; width: 36px; height: 36px; margin-right: 0.5em">Patrick Smith</div>`,
             { html: true },
-          )
+          );
         }
-        element.after('</h1>', { html: true })
+        element.after('</h1>', { html: true });
       },
     })
-    .transform(resHTML(html))
-  return '<article>' + (await res.text()) + '</article>'
+    .transform(resHTML(html));
+  return '<article>' + (await res.text()) + '</article>';
 }
 
 async function extractMarkdownMetadata(markdown: string) {
-  const { html, frontMatter } = renderMarkdown(markdown)
+  const { html, frontMatter } = renderMarkdown(markdown);
 
-  let title: string | null = null
-  let date: Date | null = null
-  let dateString: string | null = null
+  let title: string | null = null;
+  let date: Date | null = null;
+  let dateString: string | null = null;
 
   if (typeof frontMatter.title === 'string') {
-    title = frontMatter.title
+    title = frontMatter.title;
   }
 
   if (typeof frontMatter.date === 'string') {
-    dateString = frontMatter.date
+    dateString = frontMatter.date;
     try {
-      date = parseISO(frontMatter.date)
+      date = parseISO(frontMatter.date);
     } catch {}
   }
 
   if (title === null) {
-    let foundTitle = ''
+    let foundTitle = '';
     const res = new HTMLRewriter()
       .on('h1', {
         text(chunk) {
-          foundTitle += chunk.text
+          foundTitle += chunk.text;
         },
       })
-      .transform(resHTML(html))
-    await res.text()
+      .transform(resHTML(html));
+    await res.text();
 
-    foundTitle = foundTitle.replace('&amp;', '&')
-    title = foundTitle.trim()
+    foundTitle = foundTitle.replace('&amp;', '&');
+    title = foundTitle.trim();
   }
 
   return {
     title,
     date,
     dateString,
-  }
+  };
 }
 
 export interface ServeRequestOptions {
-  commitSHA?: string
-  treatAsStatic?: boolean
-  htmlHeaders?: Headers
+  commitSHA?: string;
+  treatAsStatic?: boolean;
+  htmlHeaders?: Headers;
   fetchRepoContent?: (
     ownerName: string,
     repoName: string,
     tag: string,
     path: string,
-  ) => Promise<Response>
+  ) => Promise<Response>;
 }
 
 export interface GitHubRepoSource {
-  readonly ownerName: string
-  readonly repoName: string
-  pathAppearsStatic(path: string): boolean
-  expectedMimeTypeForPath(path: string): string | undefined
-  fetchHeadSHA(): Promise<null | string>
-  serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>
+  readonly ownerName: string;
+  readonly repoName: string;
+  pathAppearsStatic(path: string): boolean;
+  expectedMimeTypeForPath(path: string): string | undefined;
+  fetchHeadSHA(): Promise<null | string>;
+  serveURL(url: URL, options?: ServeRequestOptions): Promise<Response>;
   serveStreamedURL(
     url: URL,
     options?: ServeRequestOptions,
-  ): Promise<[Response, Promise<void>]>
+  ): Promise<[Response, Promise<void>]>;
 }
 
 function getPathFileExtension(path: string): string | undefined {
-  return path.match(/\.([0-9a-z]+)$/)?.at(1)
+  return path.match(/\.([0-9a-z]+)$/)?.at(1);
 }
 
 export function sourceFromGitHubRepo(
@@ -162,32 +162,32 @@ export function sourceFromGitHubRepo(
     ownerName: ownerName,
     repoName: repoName,
     pathAppearsStatic(path: string) {
-      const extension = getPathFileExtension(path)
+      const extension = getPathFileExtension(path);
       return typeof extension === 'string'
         ? fileExtensionsToMimeTypes.has(extension)
-        : false
+        : false;
     },
     expectedMimeTypeForPath(path: string): string | undefined {
-      const extension = getPathFileExtension(path)
+      const extension = getPathFileExtension(path);
       if (extension == undefined) {
-        return 'text/html;charset=utf-8'
+        return 'text/html;charset=utf-8';
       }
-      return fileExtensionsToMimeTypes.get(extension)
+      return fileExtensionsToMimeTypes.get(extension);
     },
     async fetchHeadSHA() {
-      const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName)
-      const head = findHEADInRefs(refsGenerator())
-      return head === null ? null : head.sha
+      const refsGenerator = await fetchGitHubRepoRefs(ownerName, repoName);
+      const head = findHEADInRefs(refsGenerator());
+      return head === null ? null : head.sha;
     },
     async serveURL(url: URL, options: ServeRequestOptions): Promise<Response> {
       return await handleRequest(this, url.pathname, options ?? {}).catch(
         (err) => {
           if (err instanceof Response) {
-            return err
+            return err;
           }
-          throw err
+          throw err;
         },
-      )
+      );
     },
     async serveStreamedURL(
       url: URL,
@@ -199,18 +199,18 @@ export function sourceFromGitHubRepo(
         options ?? {},
       ).catch((err) => {
         if (err instanceof Response) {
-          return err
+          return err;
         }
-        throw err
-      })
+        throw err;
+      });
 
       if (result instanceof Response) {
-        return [result, Promise.resolve()]
+        return [result, Promise.resolve()];
       } else {
-        return result
+        return result;
       }
     },
-  })
+  });
 }
 
 export async function serveRequest(
@@ -219,7 +219,7 @@ export async function serveRequest(
   url: URL,
   options?: ServeRequestOptions,
 ) {
-  return sourceFromGitHubRepo(ownerName, repoName).serveURL(url, options)
+  return sourceFromGitHubRepo(ownerName, repoName).serveURL(url, options);
 }
 
 const fileExtensionsToMimeTypes = new Map([
@@ -236,7 +236,7 @@ const fileExtensionsToMimeTypes = new Map([
   ['ico', 'image/x-icon'],
   ['eot', 'application/vnd.ms-fontobject'],
   ['pdf', 'application/pdf'],
-])
+]);
 
 export async function handleRequest(
   repoSource: GitHubRepoSource,
@@ -244,47 +244,47 @@ export async function handleRequest(
   options: ServeRequestOptions,
 ): Promise<Response> {
   if (path.startsWith('/')) {
-    path = path.substring(1)
+    path = path.substring(1);
   }
 
-  const { ownerName, repoName } = repoSource
-  const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  const { ownerName, repoName } = repoSource;
+  const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA());
   if (resolvedSHA === null) {
-    throw Error('No SHA or HEAD.')
+    throw Error('No SHA or HEAD.');
   }
-  const sha = resolvedSHA
+  const sha = resolvedSHA;
 
   const fetchRepoContent =
-    options.fetchRepoContent ?? fetchGitHubRepoFileResponse
+    options.fetchRepoContent ?? fetchGitHubRepoFileResponse;
 
   const treatAsStatic =
-    options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
+    options.treatAsStatic ?? repoSource.pathAppearsStatic(path);
   if (treatAsStatic) {
     return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.clone(),
-    )
+    );
   }
 
   function fetchRepoTextFile(path: string): Promise<string> {
     return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.text(),
-    )
+    );
   }
 
   function loadPartial(path: string): Promise<string | null> {
     const type: 'html' | 'markdown' = path.endsWith('.html')
       ? 'html'
-      : 'markdown'
+      : 'markdown';
 
     return fetchRepoTextFile(path)
       .then((source) => (type === 'markdown' ? md.render(source) : source))
       .then((html) => adjustHTML(html))
-      .catch(() => null)
+      .catch(() => null);
   }
 
-  const htmlHeadPromise = loadPartial('_head.html')
-  const navPromise = loadPartial('_nav.md')
-  const contentinfoPromise = loadPartial('_contentinfo.md')
+  const htmlHeadPromise = loadPartial('_head.html');
+  const navPromise = loadPartial('_nav.md');
+  const contentinfoPromise = loadPartial('_contentinfo.md');
 
   async function getMainHTML() {
     if (path === '' || path === '/') {
@@ -292,27 +292,27 @@ export async function handleRequest(
         .catch(
           () => 'Add a `README.md` file to your repo to create a home page.',
         )
-        .then(renderMarkdownStandalonePage)
+        .then(renderMarkdownStandalonePage);
     }
 
     // TODO: we don’t warn when both these files exist.
     const content: null | string = await Promise.any([
       fetchRepoTextFile(`${path}/README.md`),
       fetchRepoTextFile(`${path}.md`),
-    ]).catch(() => null)
+    ]).catch(() => null);
 
-    let paths = [path]
+    let paths = [path];
 
     if (typeof content === 'string') {
-      const { html, frontMatter } = renderMarkdown(content)
+      const { html, frontMatter } = renderMarkdown(content);
       if (Array.isArray(frontMatter.includes)) {
-        paths = frontMatter.includes
+        paths = frontMatter.includes;
       } else {
-        return await renderPrimaryArticle(html, path, repoSource, frontMatter)
+        return await renderPrimaryArticle(html, path, repoSource, frontMatter);
       }
     }
 
-    type FileInfo = { filePath: string; urlPath: string }
+    type FileInfo = { filePath: string; urlPath: string };
     const allFiles: ReadonlyArray<FileInfo> = await Promise.all(
       Array.from(
         function* () {
@@ -324,29 +324,29 @@ export async function handleRequest(
               lookupPath + '/',
             )
               .then((absolutePaths) => {
-                const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
+                const absolutePrefix = `${ownerName}/${repoName}@${sha}/`;
                 return absolutePaths.map((absolutePath) => {
-                  const filePath = absolutePath.replace(absolutePrefix, '')
+                  const filePath = absolutePath.replace(absolutePrefix, '');
                   return {
                     filePath,
                     urlPath: filePath.replace(/\.md$/, ''),
-                  }
-                }) as ReadonlyArray<FileInfo>
+                  };
+                }) as ReadonlyArray<FileInfo>;
               })
-              .catch(() => [] as ReadonlyArray<FileInfo>)
+              .catch(() => [] as ReadonlyArray<FileInfo>);
           }
         }.call(undefined),
       ),
-    ).then((a: any) => a.flat())
+    ).then((a: any) => a.flat());
 
     if (allFiles.length === 0) {
-      return 404
+      return 404;
     }
 
-    const limit = 500
-    let files = allFiles.slice(0, limit)
+    const limit = 500;
+    let files = allFiles.slice(0, limit);
 
-    files.reverse()
+    files.reverse();
 
     const articlesHTML = (
       await Promise.all(
@@ -354,10 +354,10 @@ export async function handleRequest(
           function* () {
             for (const { filePath } of files) {
               if (!filePath.endsWith('.md')) {
-                continue
+                continue;
               }
 
-              const urlPath = filePath.replace(/\.md$/, '')
+              const urlPath = filePath.replace(/\.md$/, '');
               yield fetchRepoTextFile(filePath)
                 .then((markdown) => extractMarkdownMetadata(markdown))
                 .then(({ title, date, dateString }) => ({
@@ -378,7 +378,7 @@ export async function handleRequest(
                       : '',
                     h('a', { href: urlPath }, title),
                   ),
-                }))
+                }));
             }
           }.call(undefined),
         ),
@@ -386,14 +386,14 @@ export async function handleRequest(
     )
       .sort((a: any, b: any) => {
         if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
-          return b.sortKey - a.sortKey
+          return b.sortKey - a.sortKey;
         } else {
-          return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+          return `${b.sortKey}`.localeCompare(`${a.sortKey}`);
         }
       })
       .map((a: any) => a.html)
-      .join('\n')
-    return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`
+      .join('\n');
+    return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`;
   }
 
   // There is no test coverage for this.
@@ -404,41 +404,41 @@ export async function handleRequest(
       repoName,
       sha,
       path === '' ? '' : path + '/',
-    ).catch(() => [])
+    ).catch(() => []);
 
-    const filenamePrefix = `${ownerName}/${repoName}@${sha}/`
+    const filenamePrefix = `${ownerName}/${repoName}@${sha}/`;
     return Array.from(
       function* () {
         for (const file of files) {
-          const name = file.slice(filenamePrefix.length, -1)
+          const name = file.slice(filenamePrefix.length, -1);
           if (file.endsWith('/')) {
             if (path === '') {
               // FIXME: we should allow the site to specify the basename
-              yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`
+              yield `- [${name}](/github-site/${ownerName}/${repoName}/${name})`;
             } else {
               // FIXME: we should allow the site to specify the basename
-              yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`
+              yield `- [${name}](/github-site/${ownerName}/${repoName}/${path}/${name})`;
             }
           }
         }
       }.call(void 0),
-    ).join('\n')
+    ).join('\n');
   }
 
-  const mainResult = await getMainHTML()
+  const mainResult = await getMainHTML();
   const [mainHTML, status]: [string, number] =
     typeof mainResult === 'string'
       ? [mainResult, Status.success]
-      : [`<h1>Page not found.</h1>`, mainResult]
-  const htmlHead = (await htmlHeadPromise) || defaultHTMLHead()
+      : [`<h1>Page not found.</h1>`, mainResult];
+  const htmlHead = (await htmlHeadPromise) || defaultHTMLHead();
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
   const headerHTML = `<nav>${
     (await navPromise) || md.render(await fallbackNav())
-  }</nav>`
+  }</nav>`;
   // const footerHTML = `<footer>${navigator?.userAgent}</footer>`
   const footerHTML = `<footer role="contentinfo">${
     (await contentinfoPromise) || ''
-  }</footer>`
+  }</footer>`;
 
   const html = [
     htmlHead,
@@ -450,9 +450,9 @@ export async function handleRequest(
     typeof mainHTML === 'string' ? mainHTML : 'Not found',
     '</main>',
     footerHTML,
-  ].join('\n')
+  ].join('\n');
 
-  return resHTML(html, status, options.htmlHeaders)
+  return resHTML(html, status, options.htmlHeaders);
 }
 
 async function streamRequest(
@@ -460,59 +460,59 @@ async function streamRequest(
   path: string,
   options: ServeRequestOptions,
 ): Promise<Response | [Response, Promise<void>]> {
-  const { ownerName, repoName } = repoSource
+  const { ownerName, repoName } = repoSource;
 
   if (path.startsWith('/')) {
-    path = path.substring(1)
+    path = path.substring(1);
   }
 
   const fetchRepoContent =
-    options.fetchRepoContent ?? fetchGitHubRepoFileResponse
+    options.fetchRepoContent ?? fetchGitHubRepoFileResponse;
   const treatAsStatic =
-    options.treatAsStatic ?? repoSource.pathAppearsStatic(path)
+    options.treatAsStatic ?? repoSource.pathAppearsStatic(path);
 
-  const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA())
+  const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA());
   if (resolvedSHA === null) {
-    throw Error('No SHA or HEAD.')
+    throw Error('No SHA or HEAD.');
   }
-  const sha = resolvedSHA
+  const sha = resolvedSHA;
 
   if (treatAsStatic) {
     return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.clone(),
-    )
+    );
   }
 
   function fetchRepoTextFile(path: string): Promise<string> {
     return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.text(),
-    )
+    );
   }
 
   function loadPartial(path: string): Promise<string | null> {
     const type: 'html' | 'markdown' = path.endsWith('.html')
       ? 'html'
-      : 'markdown'
+      : 'markdown';
 
     return fetchRepoTextFile(path)
       .then((source) => (type === 'markdown' ? md.render(source) : source))
       .then((html) => adjustHTML(html))
-      .catch(() => null)
+      .catch(() => null);
   }
 
-  const htmlHeadPromise = loadPartial('_head.html')
-  const navPromise = loadPartial('_nav.md')
-  const contentinfoPromise = loadPartial('_contentinfo.md')
+  const htmlHeadPromise = loadPartial('_head.html');
+  const navPromise = loadPartial('_nav.md');
+  const contentinfoPromise = loadPartial('_contentinfo.md');
 
   // TODO: make streamable
   async function* generateMainHTML(): AsyncGenerator<string, void, void> {
     if (path === '' || path === '/') {
       yield await fetchRepoTextFile('README.md')
         .catch(() => {
-          throw 404
+          throw 404;
         })
-        .then(renderMarkdownStandalonePage)
-      return
+        .then(renderMarkdownStandalonePage);
+      return;
     }
 
     // TODO: we don’t warn when both these files exist.
@@ -520,23 +520,23 @@ async function streamRequest(
       fetchRepoTextFile(`${path}/README.md`),
       fetchRepoTextFile(`${path}.md`),
     ]).catch(() => {
-      throw 404
-    })
+      throw 404;
+    });
 
-    let paths = [path]
+    let paths = [path];
 
-    const { html, frontMatter } = renderMarkdown(content)
+    const { html, frontMatter } = renderMarkdown(content);
     if (Array.isArray(frontMatter.includes)) {
-      paths = frontMatter.includes
+      paths = frontMatter.includes;
     } else {
-      yield await renderPrimaryArticle(html, path, repoSource, frontMatter)
-      return
+      yield await renderPrimaryArticle(html, path, repoSource, frontMatter);
+      return;
     }
 
-    yield '<h1>Articles</h1>\n'
-    yield '<nav><ul>\n'
+    yield '<h1>Articles</h1>\n';
+    yield '<nav><ul>\n';
 
-    type FileInfo = { filePath: string; urlPath: string }
+    type FileInfo = { filePath: string; urlPath: string };
 
     for (const groupPath of paths) {
       const markdownPaths: ReadonlyArray<string> = await listGitHubRepoFiles(
@@ -546,16 +546,16 @@ async function streamRequest(
         groupPath + '/',
       )
         .then((paths) => paths.filter((path) => path.endsWith('.md')))
-        .catch(() => [])
+        .catch(() => []);
 
       const postPromises = new Array<
         Promise<{ sortKey: string | number; html: string }>
-      >()
+      >();
 
       const posts: Array<{ sortKey: string | number; html: string }> =
         await Promise.all(
           markdownPaths.map((filePath) => {
-            const urlPath = filePath.replace(/\.md$/, '')
+            const urlPath = filePath.replace(/\.md$/, '');
             return fetchRepoTextFile(filePath)
               .then((markdown) => extractMarkdownMetadata(markdown))
               .then(({ title, date, dateString }) => ({
@@ -576,52 +576,52 @@ async function streamRequest(
                     : '',
                   h('a', { href: urlPath }, title),
                 ),
-              }))
+              }));
           }),
-        )
+        );
 
       yield posts
         .sort((a, b) => {
           if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
-            return b.sortKey - a.sortKey
+            return b.sortKey - a.sortKey;
           } else {
-            return `${b.sortKey}`.localeCompare(`${a.sortKey}`)
+            return `${b.sortKey}`.localeCompare(`${a.sortKey}`);
           }
         })
         .map((a) => a.html)
-        .join('\n')
+        .join('\n');
     }
 
-    yield `</ul></nav>`
+    yield `</ul></nav>`;
   }
 
   const [htmlStream, promise] = streamText(async function* () {
-    yield (await htmlHeadPromise) || defaultHTMLHead()
-    yield '<body>\n'
-    yield '<header role=banner>\n'
-    yield `<nav>${(await navPromise) || ''}</nav>\n`
-    yield '</header>\n'
-    yield '<main>\n'
+    yield (await htmlHeadPromise) || defaultHTMLHead();
+    yield '<body>\n';
+    yield '<header role=banner>\n';
+    yield `<nav>${(await navPromise) || ''}</nav>\n`;
+    yield '</header>\n';
+    yield '<main>\n';
 
     try {
       for await (const postHTML of generateMainHTML()) {
-        yield postHTML
+        yield postHTML;
       }
     } catch (error) {
       if (typeof error === 'number') {
-        yield '<h1>Content not found.</h1>'
+        yield '<h1>Content not found.</h1>';
       } else {
-        yield '<h1>An error occurred.</h1>'
+        yield '<h1>An error occurred.</h1>';
       }
     }
 
-    yield '\n'
+    yield '\n';
     yield `<footer role="contentinfo">${
       (await contentinfoPromise) || ''
-    }</footer>\n`
-  })
+    }</footer>\n`;
+  });
 
   // FIXME: assumes this page is valid.
-  const status = Status.success
-  return [resHTML(htmlStream, status, options.htmlHeaders), promise]
+  const status = Status.success;
+  return [resHTML(htmlStream, status, options.htmlHeaders), promise];
 }

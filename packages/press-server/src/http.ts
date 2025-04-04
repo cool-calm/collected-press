@@ -1,4 +1,4 @@
-import { pair, into } from './data'
+import { pair, into } from './data';
 
 export const Status = {
   success: 200,
@@ -19,33 +19,33 @@ export const Status = {
   conflict: 409,
   unprocessableEntity: 422, // Validation failed
   tooManyRequests: 429,
-}
+};
 
 const secureHTMLHeaders = Object.freeze([
   pair('strict-transport-security', 'max-age=63072000'),
   pair('x-content-type-options', 'nosniff'),
   pair('x-frame-options', 'DENY'),
   /* pair('x-xss-protection', '1; mode=block'), */
-])
+]);
 
 const contentSecurityPolicyHeaders = Object.freeze([
   pair(
     'content-security-policy',
     "default-src 'self'; font-src 'self' data:; img-src * data:; media-src *; style-src 'self' 'unsafe-hashes' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' https://cdn.usefathom.com",
   ),
-])
+]);
 
 const linkHeaders = Object.freeze([
   // pair('link', '<https://cdn.jsdelivr.net>; rel="preconnect"'),
-])
+]);
 
 export function resJSON(
   json: {} | ReadonlyArray<unknown>,
   status = Status.success,
   headers = new Headers(),
 ) {
-  headers.set('content-type', 'application/json')
-  return new Response(JSON.stringify(json), { status, headers })
+  headers.set('content-type', 'application/json');
+  return new Response(JSON.stringify(json), { status, headers });
 }
 export function resHTML(
   html: string | ReadableStream<Uint8Array>,
@@ -56,45 +56,45 @@ export function resHTML(
   // assigning(pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)(headers)
   // assign(headers, [pair('content-type', 'text/html;charset=utf-8')], secureHTMLHeaders, contentSecurityPolicyHeaders)
 
-  const customHeaders = headers !== undefined
-  headers = new Headers(headers)
+  const customHeaders = headers !== undefined;
+  headers = new Headers(headers);
 
-  headers.set('content-type', 'text/html;charset=utf-8')
+  headers.set('content-type', 'text/html;charset=utf-8');
   if (!customHeaders) {
     for (const [key, value] of secureHTMLHeaders) {
-      headers.append(key, value)
+      headers.append(key, value);
     }
     for (const [key, value] of contentSecurityPolicyHeaders) {
-      headers.append(key, value)
+      headers.append(key, value);
     }
     // for (const [key, value] of linkHeaders) {
     //   headers.append(key, value)
     // }
   }
-  return new Response(html, { status, headers })
+  return new Response(html, { status, headers });
 }
 export function resPlainText(
   text: string,
   status = Status.success,
   headers = new Headers(),
 ) {
-  headers.set('content-type', 'text/plain;charset=utf-8')
-  return new Response(text, { status, headers })
+  headers.set('content-type', 'text/plain;charset=utf-8');
+  return new Response(text, { status, headers });
 }
 export function resCSSCached(
   text: string,
   status = Status.success,
   headers = new Headers(),
 ) {
-  headers.set('content-type', 'text/css;charset=utf-8')
-  headers.set('cache-control', 'public, max-age=604800, s-maxage=43200')
-  return new Response(text, { status, headers })
+  headers.set('content-type', 'text/css;charset=utf-8');
+  headers.set('cache-control', 'public, max-age=604800, s-maxage=43200');
+  return new Response(text, { status, headers });
 }
 export function resRedirect(
   location: string,
   status = Status.seeOther,
   headers = new Headers(),
 ) {
-  headers.set('location', location.toString())
-  return new Response(undefined, { status, headers })
+  headers.set('location', location.toString());
+  return new Response(undefined, { status, headers });
 }

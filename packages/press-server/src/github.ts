@@ -1,17 +1,17 @@
-import { resJSON } from './http'
+import { resJSON } from './http';
 
 interface RefItem {
-  ref: string
-  oid: string
-  target?: string
-  peeled?: string
-  HEADRef?: string
-  objectFormat?: string
-  agent?: string
+  ref: string;
+  oid: string;
+  target?: string;
+  peeled?: string;
+  HEADRef?: string;
+  objectFormat?: string;
+  agent?: string;
 }
 
-export const githubOwnerNameRegex = /^[-_a-z\d]+/i
-export const githubRepoNameRegex = /^[-_.a-z\d]+/i
+export const githubOwnerNameRegex = /^[-_a-z\d]+/i;
+export const githubRepoNameRegex = /^[-_.a-z\d]+/i;
 
 export async function fetchGitHubRepoFileResponse(
   ownerName: string,
@@ -24,7 +24,7 @@ export async function fetchGitHubRepoFileResponse(
     repoName,
     tag,
     path,
-  )
+  );
 }
 
 async function fetchGitHubRepoFileFromGitHubUserContent(
@@ -33,9 +33,9 @@ async function fetchGitHubRepoFileFromGitHubUserContent(
   tag: string,
   path: string,
 ): Promise<Response> {
-  const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${tag}/${path}`
+  const sourceURL = `https://raw.githubusercontent.com/${ownerName}/${repoName}/${tag}/${path}`;
   // console.log(sourceURL)
-  const sourceRes = await fetch(sourceURL)
+  const sourceRes = await fetch(sourceURL);
   if (sourceRes.status >= 400) {
     throw resJSON(
       {
@@ -43,29 +43,29 @@ async function fetchGitHubRepoFileFromGitHubUserContent(
         error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
       },
       sourceRes.status,
-    )
+    );
   }
 
-  let newContentType: string | undefined
+  let newContentType: string | undefined;
 
   if (path.endsWith('.css')) {
     // GitHub sends back a content-type of text/plain.
-    newContentType = 'text/css;charset=utf-8'
+    newContentType = 'text/css;charset=utf-8';
   } else if (path.endsWith('.pdf')) {
     // GitHub sends back a content-type of application/octet-stream.
-    newContentType = 'application/pdf'
+    newContentType = 'application/pdf';
   }
 
   if (newContentType) {
-    const headers = new Headers(sourceRes.headers)
-    headers.set('content-type', newContentType)
+    const headers = new Headers(sourceRes.headers);
+    headers.set('content-type', newContentType);
     return new Response(await sourceRes.arrayBuffer(), {
       status: sourceRes.status,
       headers,
-    })
+    });
   }
 
-  return sourceRes
+  return sourceRes;
 }
 
 async function fetchGitHubRepoFileFromJsdelivr(
@@ -74,8 +74,8 @@ async function fetchGitHubRepoFileFromJsdelivr(
   tag: string,
   path: string,
 ): Promise<Response> {
-  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`
-  const sourceRes = await fetch(sourceURL)
+  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${tag}/${path}`;
+  const sourceRes = await fetch(sourceURL);
   if (sourceRes.status >= 400) {
     throw resJSON(
       {
@@ -83,10 +83,10 @@ async function fetchGitHubRepoFileFromJsdelivr(
         error: `fetch github repo file response ${sourceRes.status} ${tag} ${path}`,
       },
       sourceRes.status,
-    )
+    );
   }
 
-  return sourceRes
+  return sourceRes;
 }
 
 export async function listGitHubRepoFiles(
@@ -95,33 +95,33 @@ export async function listGitHubRepoFiles(
   sha: string,
   path: string,
 ): Promise<ReadonlyArray<string>> {
-  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`
-  const sourceRes = await fetch(sourceURL)
+  const sourceURL = `https://cdn.jsdelivr.net/gh/${ownerName}/${repoName}@${sha}/${path}`;
+  const sourceRes = await fetch(sourceURL);
   if (sourceRes.status >= 400) {
     throw resJSON(
       { sourceURL, error: `listGitHubRepoFiles ${sha} ${path}` },
       sourceRes.status,
-    )
+    );
   }
 
-  const foundLinks: Array<string> = []
-  const absolutePrefix = `${ownerName}/${repoName}@${sha}/`
+  const foundLinks: Array<string> = [];
+  const absolutePrefix = `${ownerName}/${repoName}@${sha}/`;
   const transformedRes = new HTMLRewriter()
     .on('tr td.name a[href]', {
       element(el) {
-        let path = el.getAttribute('href')
-        if (typeof path !== 'string') return
-        if (path.startsWith('.')) return
-        path = path.replace(/^\/gh\//, '')
-        path = path.replace(absolutePrefix, '')
-        foundLinks.push(path)
+        let path = el.getAttribute('href');
+        if (typeof path !== 'string') return;
+        if (path.startsWith('.')) return;
+        path = path.replace(/^\/gh\//, '');
+        path = path.replace(absolutePrefix, '');
+        foundLinks.push(path);
       },
     })
-    .transform(sourceRes)
+    .transform(sourceRes);
 
-  await transformedRes.text()
+  await transformedRes.text();
 
-  return Object.freeze(foundLinks)
+  return Object.freeze(foundLinks);
 }
 
 export async function fetchGitHubRepoRefs(
@@ -130,53 +130,53 @@ export async function fetchGitHubRepoRefs(
 ): Promise<() => Generator<Readonly<RefItem>, void, unknown>> {
   // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/models/GitPktLine.js
   // See: https://github.com/isomorphic-git/isomorphic-git/blob/52b87bb05f6041f0a372ceab24bc55ee6c23d374/src/api/listServerRefs.js
-  const url = `https://github.com/${ownerName}/${repoName}.git/info/refs?service=git-upload-pack`
-  const res = await fetch(url)
-  const arrayBuffer = await res.arrayBuffer()
+  const url = `https://github.com/${ownerName}/${repoName}.git/info/refs?service=git-upload-pack`;
+  const res = await fetch(url);
+  const arrayBuffer = await res.arrayBuffer();
   return function* decodePktLine() {
-    let current = 0
+    let current = 0;
     linesLoop: while (true) {
-      const utf8Decoder = new TextDecoder('utf-8')
+      const utf8Decoder = new TextDecoder('utf-8');
       const lengthHex = utf8Decoder.decode(
         arrayBuffer.slice(current, current + 4),
-      )
-      current += 4
-      const length = parseInt(lengthHex, 16)
+      );
+      current += 4;
+      const length = parseInt(lengthHex, 16);
       if (length <= 1) {
-        continue linesLoop
+        continue linesLoop;
       }
 
-      const bytes = arrayBuffer.slice(current, current + length - 4)
-      if (bytes.byteLength === 0) break linesLoop
-      current += length - 4
+      const bytes = arrayBuffer.slice(current, current + length - 4);
+      if (bytes.byteLength === 0) break linesLoop;
+      current += length - 4;
 
-      const line = utf8Decoder.decode(bytes).trimEnd()
-      const [oid, refRaw, ...attrs] = line.split(' ')
+      const line = utf8Decoder.decode(bytes).trimEnd();
+      const [oid, refRaw, ...attrs] = line.split(' ');
       if (oid === '#') {
-        continue linesLoop
+        continue linesLoop;
       }
 
-      const [ref] = refRaw.split('\u0000')
+      const [ref] = refRaw.split('\u0000');
 
-      const r: RefItem = { ref, oid }
+      const r: RefItem = { ref, oid };
       // r.attrs = attrs;
       for (const attr of attrs) {
-        const [name, value] = attr.split(':')
+        const [name, value] = attr.split(':');
         if (name === 'symref-target') {
-          r.target = value
+          r.target = value;
         } else if (name === 'peeled') {
-          r.peeled = value
+          r.peeled = value;
         } else if (name === 'symref=HEAD') {
-          r.HEADRef = value
+          r.HEADRef = value;
         } else if (name === 'object-format') {
-          r.objectFormat = value
+          r.objectFormat = value;
         } else if (name === 'agent') {
-          r.agent = value
+          r.agent = value;
         }
       }
-      yield Object.freeze(r)
+      yield Object.freeze(r);
     }
-  }
+  };
 }
 
 export function findHEADInRefs(
@@ -184,19 +184,19 @@ export function findHEADInRefs(
 ): null | Readonly<{ sha: string; HEADRef: string; branch: string }> {
   for (const line of refsIterable) {
     if (line.HEADRef) {
-      const branch = line.HEADRef.split('/').at(-1)
+      const branch = line.HEADRef.split('/').at(-1);
       if (!branch) {
-        return null
+        return null;
       }
       return {
         sha: line.oid,
         HEADRef: line.HEADRef,
         branch,
-      }
+      };
     }
-    break
+    break;
   }
-  return null
+  return null;
 }
 
 export function findBranchInRefs(
@@ -205,10 +205,10 @@ export function findBranchInRefs(
 ): null | Readonly<{ sha: string }> {
   for (const line of refsIterable) {
     if (line.ref === `refs/heads/${branch}`) {
-      return { sha: line.oid }
+      return { sha: line.oid };
     }
   }
-  return null
+  return null;
 }
 
 export async function fetchGitHubGistFile(
@@ -216,11 +216,11 @@ export async function fetchGitHubGistFile(
   gistID: string,
   path = '',
 ): Promise<string> {
-  const sourceURL = `https://gist.githubusercontent.com/${ownerName}/${gistID}/raw/${path}`
-  const sourceRes = await fetch(sourceURL)
+  const sourceURL = `https://gist.githubusercontent.com/${ownerName}/${gistID}/raw/${path}`;
+  const sourceRes = await fetch(sourceURL);
   if (sourceRes.status >= 400) {
-    throw resJSON({ sourceURL, error: true }, sourceRes.status)
+    throw resJSON({ sourceURL, error: true }, sourceRes.status);
   }
 
-  return await sourceRes.text()
+  return await sourceRes.text();
 }
