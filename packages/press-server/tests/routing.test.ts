@@ -25,6 +25,7 @@ describe('Worker', () => {
     const resp = await worker.fetch('/')
     const text = await resp.text()
     // expect(resp.headers.has('content-length')).toBe(true)
+    expect(resp.headers.get('content-type')).toContain('text/html')
     expect(text).toMatch(/<!doctype html>/i)
     expect(text).toMatch(`<h1>Patrick George Wyndham Smith</h1>`)
   })
@@ -33,6 +34,7 @@ describe('Worker', () => {
     const resp = await worker.fetch('/?stream')
     expect(resp.headers.has('content-length')).toBe(false)
     expect(resp.headers.get('transfer-encoding')).toBe('chunked')
+    expect(resp.headers.get('content-type')).toContain('text/html')
     const text = await resp.text()
     expect(text).toMatch(/<!doctype html>/i)
     expect(text).toMatch(`<h1>Patrick George Wyndham Smith</h1>`)
@@ -54,6 +56,7 @@ describe('Worker', () => {
     expect(text).toMatch(`November 24, 2020`)
     expect(text).toMatch(`React &amp; Hooks`)
   })
+
   it('can stream /blog', async () => {
     const resp = await worker.fetch('/blog?stream')
     expect(resp.headers.has('content-length')).toBe(false)
