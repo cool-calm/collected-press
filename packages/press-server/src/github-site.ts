@@ -509,7 +509,7 @@ export async function handleRequest(
       // `<description>Some description</description>`,
       contentItems.map((item) => [
         `<item>`,
-        `<guid>${escape(item.id)}</guid>`,
+        `<guid isPermaLink="false">${escape(item.id)}</guid>`,
         `<title>${escape(item.title)}</title>`,
         item.date
           ? `<pubDate>${escape(formatRFC7231(item.date))}</pubDate>`
