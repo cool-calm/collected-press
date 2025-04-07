@@ -1,6 +1,6 @@
 import { pair, into } from './data';
 
-export const Status = {
+export const Status = Object.freeze({
   success: 200,
   created: 201,
   accepted: 202,
@@ -19,7 +19,9 @@ export const Status = {
   conflict: 409,
   unprocessableEntity: 422, // Validation failed
   tooManyRequests: 429,
-};
+});
+
+export type StatusValue = typeof Status[keyof typeof Status];
 
 const secureHTMLHeaders = Object.freeze([
   pair('strict-transport-security', 'max-age=63072000'),
@@ -41,7 +43,7 @@ const linkHeaders = Object.freeze([
 
 export function resJSON(
   json: {} | ReadonlyArray<unknown>,
-  status = Status.success,
+  status: number = Status.success,
   headers = new Headers(),
 ) {
   headers.set('content-type', 'application/json');
@@ -49,7 +51,7 @@ export function resJSON(
 }
 export function resHTML(
   html: string | ReadableStream<Uint8Array>,
-  status = Status.success,
+  status: number = Status.success,
   headers?: Headers,
 ) {
   // assignEntries(headers, pair('content-type', 'text/html;charset=utf-8'), ...secureHTMLHeaders, ...contentSecurityPolicyHeaders)
@@ -75,15 +77,23 @@ export function resHTML(
 }
 export function resPlainText(
   text: string,
-  status = Status.success,
+  status: number = Status.success,
   headers = new Headers(),
 ) {
   headers.set('content-type', 'text/plain;charset=utf-8');
   return new Response(text, { status, headers });
 }
+export function resRSS2(
+  text: string,
+  status: number = Status.success,
+  headers = new Headers(),
+) {
+  headers.set('content-type', 'application/rss+xml;charset=utf-8');
+  return new Response(text, { status, headers });
+}
 export function resCSSCached(
   text: string,
-  status = Status.success,
+  status: number = Status.success,
   headers = new Headers(),
 ) {
   headers.set('content-type', 'text/css;charset=utf-8');
@@ -92,7 +102,7 @@ export function resCSSCached(
 }
 export function resRedirect(
   location: string,
-  status = Status.seeOther,
+  status: 301 | 303 | 304 | 307 = Status.seeOther,
   headers = new Headers(),
 ) {
   headers.set('location', location.toString());

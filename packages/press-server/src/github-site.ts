@@ -1,4 +1,4 @@
-import { parseISO } from 'date-fns';
+import { parseISO, formatRFC7231 } from 'date-fns';
 import h from 'vhtml';
 import {
   fetchGitHubRepoFileResponse,
@@ -13,7 +13,7 @@ import {
   renderMarkdown,
   streamText,
 } from './html';
-import { resHTML, Status } from './http';
+import { resHTML, resRSS2, Status, type StatusValue } from './http';
 
 async function adjustHTML(html: string) {
   const res = new HTMLRewriter()
@@ -46,7 +46,7 @@ async function renderPrimaryArticle(
   path: string,
   repoSource: GitHubRepoSource,
   frontMatter: FrontmatterProperties,
-): Promise<string> {
+): Promise<Readonly<{ id: string; title: string; html: string }>> {
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
@@ -55,7 +55,7 @@ async function renderPrimaryArticle(
         element.before('<h1>', { html: true });
 
         if (typeof frontMatter.date === 'string') {
-          const date = parseISO(frontMatter.date);
+          const date = parseISOAsUTC(frontMatter.date);
           element.after(
             h(
               'time',
@@ -70,6 +70,7 @@ async function renderPrimaryArticle(
           );
         }
 
+        // TODO: make this a config option
         if (false && repoSource.ownerName === 'RoyalIcing') {
           element.after(
             `<div style="margin-bottom: 3rem"><img src="${gitHubProfilePictureURL(
@@ -82,15 +83,20 @@ async function renderPrimaryArticle(
       },
     })
     .transform(resHTML(html));
-  return '<article>' + (await res.text()) + '</article>';
+  return Object.freeze({
+    id: path,
+    title: frontMatter.title ?? path,
+    html: '<article>' + (await res.text()) + '</article>',
+  });
 }
 
 async function extractMarkdownMetadata(markdown: string) {
   const { html, frontMatter } = renderMarkdown(markdown);
 
-  let title: string | null = null;
-  let date: Date | null = null;
-  let dateString: string | null = null;
+  let title: string | undefined = undefined;
+  let date: Date | undefined = undefined;
+  let dateString: string | undefined = undefined;
+  let includes: Array<string> | undefined = undefined;
 
   if (typeof frontMatter.title === 'string') {
     title = frontMatter.title;
@@ -99,30 +105,44 @@ async function extractMarkdownMetadata(markdown: string) {
   if (typeof frontMatter.date === 'string') {
     dateString = frontMatter.date;
     try {
-      date = parseISO(frontMatter.date);
+      date = parseISOAsUTC(frontMatter.date);
     } catch {}
   }
 
-  if (title === null) {
+  if (title === undefined) {
     let foundTitle = '';
-    const res = new HTMLRewriter()
-      .on('h1', {
-        text(chunk) {
-          foundTitle += chunk.text;
-        },
-      })
-      .transform(resHTML(html));
-    await res.text();
+
+    // Regex to extract the title from the first <h1> tag
+    const titleRegex = /<h1[^>]*>(.*?)<\/h1>/i;
+    const match = html.match(titleRegex);
+    if (match !== null && match[1]) {
+      foundTitle = match[1];
+    }
+
+    // const res = new HTMLRewriter()
+    //   .on('h1', {
+    //     text(chunk) {
+    //       foundTitle += chunk.text;
+    //     },
+    //   })
+    //   .transform(resHTML(html));
+    // await res.text();
 
     foundTitle = foundTitle.replace('&amp;', '&');
     title = foundTitle.trim();
   }
 
-  return {
+  if (Array.isArray(frontMatter.includes)) {
+    includes = frontMatter.includes;
+  }
+
+  return Object.freeze({
     title,
     date,
     dateString,
-  };
+    includes,
+    html,
+  });
 }
 
 export interface ServeRequestOptions {
@@ -163,9 +183,14 @@ export function sourceFromGitHubRepo(
     repoName: repoName,
     pathAppearsStatic(path: string) {
       const extension = getPathFileExtension(path);
-      return typeof extension === 'string'
-        ? fileExtensionsToMimeTypes.has(extension)
-        : false;
+
+      // No extension is dynamic HTML
+      if (typeof extension !== 'string') return false;
+
+      // .rss is dynamic
+      if (extension === 'rss') return false;
+
+      return fileExtensionsToMimeTypes.has(extension);
     },
     expectedMimeTypeForPath(path: string): string | undefined {
       const extension = getPathFileExtension(path);
@@ -226,6 +251,8 @@ const fileExtensionsToMimeTypes = new Map([
   ['txt', 'text/plain;charset=utf-8'],
   ['css', 'text/css;charset=utf-8'],
   ['svg', 'image/svg+xml'],
+  ['rss', 'application/rss+xml'],
+  // ['atom', 'application/atom+xml'],
   ['avif', 'image/avif'],
   ['webp', 'image/webp'],
   ['png', 'image/png'],
@@ -247,6 +274,14 @@ export async function handleRequest(
     path = path.substring(1);
   }
 
+  const treatAsStatic =
+    options.treatAsStatic ?? repoSource.pathAppearsStatic(path);
+  const mimeType = repoSource.expectedMimeTypeForPath(path);
+
+  if (path.endsWith('.rss')) {
+    path = path.slice(0, -4);
+  }
+
   const { ownerName, repoName } = repoSource;
   const resolvedSHA = await (options.commitSHA ?? repoSource.fetchHeadSHA());
   if (resolvedSHA === null) {
@@ -257,8 +292,6 @@ export async function handleRequest(
   const fetchRepoContent =
     options.fetchRepoContent ?? fetchGitHubRepoFileResponse;
 
-  const treatAsStatic =
-    options.treatAsStatic ?? repoSource.pathAppearsStatic(path);
   if (treatAsStatic) {
     return fetchRepoContent(ownerName, repoName, sha, path).then((res) =>
       res.clone(),
@@ -286,13 +319,30 @@ export async function handleRequest(
   const navPromise = loadPartial('_nav.md');
   const contentinfoPromise = loadPartial('_contentinfo.md');
 
-  async function getMainHTML() {
+  async function getMainContent(): Promise<
+    ReadonlyArray<
+      Readonly<{
+        id: string;
+        title: string;
+        html: string;
+        shortHTML?: string;
+        date?: Date;
+      }>
+    >
+  > {
     if (path === '' || path === '/') {
       return await fetchRepoTextFile('README.md')
         .catch(
           () => 'Add a `README.md` file to your repo to create a home page.',
         )
-        .then(renderMarkdownStandalonePage);
+        .then(renderMarkdownStandalonePage)
+        .then((html) => [
+          {
+            id: 'home',
+            title: 'Home',
+            html,
+          },
+        ]);
     }
 
     // TODO: we don’t warn when both these files exist.
@@ -304,15 +354,22 @@ export async function handleRequest(
     let paths = [path];
 
     if (typeof content === 'string') {
-      const { html, frontMatter } = renderMarkdown(content);
-      if (Array.isArray(frontMatter.includes)) {
-        paths = frontMatter.includes;
+      const { html, title, includes, date, dateString } =
+        await extractMarkdownMetadata(content);
+
+      // Is this a combination of other pages with their content, or a standalone page with its own content?
+      if (Array.isArray(includes)) {
+        paths = includes;
       } else {
-        return await renderPrimaryArticle(html, path, repoSource, frontMatter);
+        return await renderPrimaryArticle(html, path, repoSource, {
+          title,
+          date: dateString,
+          includes,
+        }).then((item) => [item]);
       }
     }
 
-    type FileInfo = { filePath: string; urlPath: string };
+    type FileInfo = Readonly<{ filePath: string; urlPath: string }>;
     const allFiles: ReadonlyArray<FileInfo> = await Promise.all(
       Array.from(
         function* () {
@@ -337,10 +394,10 @@ export async function handleRequest(
           }
         }.call(undefined),
       ),
-    ).then((a: any) => a.flat());
+    ).then((a) => a.flat());
 
     if (allFiles.length === 0) {
-      return 404;
+      return [];
     }
 
     const limit = 500;
@@ -348,7 +405,7 @@ export async function handleRequest(
 
     files.reverse();
 
-    const articlesHTML = (
+    return (
       await Promise.all(
         Array.from(
           function* () {
@@ -360,9 +417,15 @@ export async function handleRequest(
               const urlPath = filePath.replace(/\.md$/, '');
               yield fetchRepoTextFile(filePath)
                 .then((markdown) => extractMarkdownMetadata(markdown))
-                .then(({ title, date, dateString }) => ({
-                  sortKey: date instanceof Date ? date.valueOf() : title,
-                  html: h(
+                .then(({ title, date, dateString, html }) => ({
+                  id: filePath,
+                  title: title ?? filePath,
+                  date,
+                  dateString,
+                  sortKey:
+                    date instanceof Date ? date.valueOf() : title ?? filePath,
+                  html,
+                  shortHTML: h(
                     'li',
                     {},
                     date instanceof Date
@@ -383,17 +446,14 @@ export async function handleRequest(
           }.call(undefined),
         ),
       )
-    )
-      .sort((a: any, b: any) => {
-        if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
-          return b.sortKey - a.sortKey;
-        } else {
-          return `${b.sortKey}`.localeCompare(`${a.sortKey}`);
-        }
-      })
-      .map((a: any) => a.html)
-      .join('\n');
-    return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`;
+    ).sort((a: any, b: any) => {
+      if (typeof a.sortKey === 'number' && typeof b.sortKey === 'number') {
+        return b.sortKey - a.sortKey;
+      } else {
+        return `${b.sortKey}`.localeCompare(`${a.sortKey}`);
+      }
+    });
+    // return `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`;
   }
 
   // There is no test coverage for this.
@@ -425,11 +485,58 @@ export async function handleRequest(
     ).join('\n');
   }
 
-  const mainResult = await getMainHTML();
-  const [mainHTML, status]: [string, number] =
-    typeof mainResult === 'string'
-      ? [mainResult, Status.success]
-      : [`<h1>Page not found.</h1>`, mainResult];
+  const contentItems = await getMainContent();
+  console.log(contentItems);
+
+  if (mimeType === 'application/rss+xml') {
+    const xml = [
+      `<?xml version="1.0" encoding="UTF-8"?>`,
+      `<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">`,
+      `<channel>`,
+      `<title>${escape(ownerName)}</title>`,
+      `<language>en</language>`,
+      `<generator>https://collected.press</generator>`,
+      `${contentItems.length} items`,
+      // `${files.length} items`,
+      // `<link>https://www.dta.gov.au/</link>`,
+      // `<description>Some description</description>`,
+      contentItems.map((item) => [
+        `<item>`,
+        `<guid>${escape(item.id)}</guid>`,
+        `<title>${escape(item.title)}</title>`,
+        item.date
+          ? `<pubDate>${escape(formatRFC7231(item.date))}</pubDate>`
+          : '',
+        // `<link>${escape(item.path)}</link>`,
+        `<dc:creator>${escape(ownerName)}</dc:creator>`,
+        `<content:encoded>${escape(item.html)}</content:encoded>`,
+        `</item>`,
+      ]),
+      `</channel>`,
+      `</rss>`,
+    ]
+      .flat(3)
+      .join('\n');
+    return resRSS2(xml, Status.success);
+  }
+
+  // const mainResult = await getMainHTML();
+
+  let mainHTML = '';
+  let status: StatusValue = Status.success;
+
+  if (contentItems.length === 0) {
+    mainHTML = `<h1>Page not found.</h1>`;
+    status = Status.notFound;
+  } else if (contentItems.length === 1) {
+    mainHTML = contentItems[0].html;
+  } else {
+    const articlesHTML = contentItems
+      .map((item) => item.shortHTML ?? '')
+      .join('\n');
+    mainHTML = `<h1>Articles</h1>\n<nav><ul>${articlesHTML}</ul></nav>`;
+  }
+
   const htmlHead = (await htmlHeadPromise) || defaultHTMLHead();
   // const headerHTML = (await headerPromise) || `<nav>${md.render(navSource)}</nav>`
   const headerHTML = `<nav>${
@@ -529,7 +636,12 @@ async function streamRequest(
     if (Array.isArray(frontMatter.includes)) {
       paths = frontMatter.includes;
     } else {
-      yield await renderPrimaryArticle(html, path, repoSource, frontMatter);
+      yield await renderPrimaryArticle(
+        html,
+        path,
+        repoSource,
+        frontMatter,
+      ).then((item) => item.html);
       return;
     }
 
@@ -559,7 +671,8 @@ async function streamRequest(
             return fetchRepoTextFile(filePath)
               .then((markdown) => extractMarkdownMetadata(markdown))
               .then(({ title, date, dateString }) => ({
-                sortKey: date instanceof Date ? date.valueOf() : title,
+                sortKey:
+                  date instanceof Date ? date.valueOf() : title ?? filePath,
                 html: h(
                   'li',
                   {},
@@ -625,3 +738,39 @@ async function streamRequest(
   const status = Status.success;
   return [resHTML(htmlStream, status, options.htmlHeaders), promise];
 }
+
+function parseISOAsUTC(isoString: string): Date {
+  if (/Z/i.test(isoString)) {
+    return parseISO(isoString);
+  }
+
+  if (/T/i.test(isoString)) {
+    return parseISO(isoString + 'Z');
+  }
+
+  return parseISO(isoString + 'T00:00:00Z');
+}
+
+function escape(input: string): string {
+  const lookupTable: { [char: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+
+  return input.replace(/[&<>"']/g, (char) => lookupTable[char]);
+}
+
+// function unescape(input: string): string {
+//   const lookupTable: { [char: string]: string } = {
+//     '&amp;': '&',
+//     '&lt;': '<',
+//     '&gt;': '>',
+//     '&quot;': '"',
+//     '&#39;': "'",
+//   };
+
+//   return input.replace(/[&<>"']/g, (char) => lookupTable[char]);
+// }
