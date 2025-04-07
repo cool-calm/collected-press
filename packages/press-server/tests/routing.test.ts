@@ -87,10 +87,16 @@ describe('Worker', () => {
     const resp = await worker.fetch('/blog.rss');
     expect(resp.headers.get('content-type')).toContain('application/rss+xml');
     const text = await resp.text();
+    expect(text).toMatch(
+      `<title>Royal Icing — Patrick George Wyndham Smith</title>`,
+    );
     expect(text).toMatch(`Vary variables not rules in CSS media queries`);
     expect(text).toMatch(`The Missing App Economy`);
     expect(text).toMatch(`24 Nov 2020`);
     expect(text).toMatch(`React &amp; Hooks`);
+    expect(text).toMatch(
+      `<link>https://royalicing.com/2023/optimist-pessimist-wifi</link>`,
+    );
   });
 
   it('can render /2020/vary-variables-not-rules-in-css-media-queries', async () => {

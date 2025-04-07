@@ -15,7 +15,10 @@ export default {
       ctx.waitUntil(done);
       return response;
     } else {
-      return source.serveURL(url);
+      return source.serveURL(url, {
+        siteName: 'Royal Icing — Patrick George Wyndham Smith',
+        baseURL: new URL('https://royalicing.com'),
+      });
     }
   },
 };

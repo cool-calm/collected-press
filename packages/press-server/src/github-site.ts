@@ -46,7 +46,9 @@ async function renderPrimaryArticle(
   path: string,
   repoSource: GitHubRepoSource,
   frontMatter: FrontmatterProperties,
-): Promise<Readonly<{ id: string; title: string; html: string }>> {
+): Promise<
+  Readonly<{ id: string; title: string; html: string; sitePath: string }>
+> {
   const res = new HTMLRewriter()
     .on('h1', {
       element(element) {
@@ -86,6 +88,7 @@ async function renderPrimaryArticle(
   return Object.freeze({
     id: path,
     title: frontMatter.title ?? path,
+    sitePath: path,
     html: '<article>' + (await res.text()) + '</article>',
   });
 }
@@ -146,6 +149,8 @@ async function extractMarkdownMetadata(markdown: string) {
 }
 
 export interface ServeRequestOptions {
+  siteName?: string;
+  baseURL?: URL;
   commitSHA?: string;
   treatAsStatic?: boolean;
   htmlHeaders?: Headers;
@@ -324,6 +329,7 @@ export async function handleRequest(
       Readonly<{
         id: string;
         title: string;
+        sitePath: string;
         html: string;
         shortHTML?: string;
         date?: Date;
@@ -340,6 +346,7 @@ export async function handleRequest(
           {
             id: 'home',
             title: 'Home',
+            sitePath: '/',
             html,
           },
         ]);
@@ -419,7 +426,8 @@ export async function handleRequest(
                 .then((markdown) => extractMarkdownMetadata(markdown))
                 .then(({ title, date, dateString, html }) => ({
                   id: filePath,
-                  title: title ?? filePath,
+                  title: title ?? urlPath,
+                  sitePath: urlPath,
                   date,
                   dateString,
                   sortKey:
@@ -493,10 +501,9 @@ export async function handleRequest(
       `<?xml version="1.0" encoding="UTF-8"?>`,
       `<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">`,
       `<channel>`,
-      `<title>${escape(ownerName)}</title>`,
+      `<title>${escape(options.siteName ?? ownerName)}</title>`,
       `<language>en</language>`,
       `<generator>https://collected.press</generator>`,
-      `${contentItems.length} items`,
       // `${files.length} items`,
       // `<link>https://www.dta.gov.au/</link>`,
       // `<description>Some description</description>`,
@@ -507,7 +514,11 @@ export async function handleRequest(
         item.date
           ? `<pubDate>${escape(formatRFC7231(item.date))}</pubDate>`
           : '',
-        // `<link>${escape(item.path)}</link>`,
+        `<link>${escape(
+          options.baseURL
+            ? new URL(item.sitePath, options.baseURL).toString()
+            : item.sitePath,
+        )}</link>`,
         `<dc:creator>${escape(ownerName)}</dc:creator>`,
         `<content:encoded>${escape(item.html)}</content:encoded>`,
         `</item>`,
